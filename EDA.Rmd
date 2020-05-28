@@ -1,0 +1,122 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Loading Libraries
+
+```{r}
+library(dplyr)
+library(tidyverse)
+library(cowplot)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(scales)
+```
+
+Load Data
+```{r}
+data <- read.csv("/Users/ks/Desktop/DDP/PREM/DATA_27APRIL2020/V1_allABCDDF.csv",header=T, na.strings=c("","[]","NA"))
+
+```
+Boxplot For Age distribution
+```{r}
+data$Gender <- as.factor(data$Gender)
+data$Age..in.Months. <- as.integer(data$Age..in.Months.)
+data %>% 
+  filter(!is.na(Gender)) %>%
+  filter(!is.na(Age..in.Months.)) %>%
+  ggplot(aes(Age..in.Months. , fill = Gender)) + geom_boxplot() + coord_flip()
+```
+
+Removing Outliers
+```{r}
+
+for (i in 1:length(data$Age..in.Months.)){
+    if(is.na(data$Age..in.Months.[i])|| data$Age..in.Months.[i] > 192) {
+       (data$Age..in.Months.[i] = NA)
+    }
+  }
+```
+
+
+
+Preprocessing
+```{r}
+preprocessing <- function(df,red_cols) 
+  { 
+  # Removing duplicates
+  df <- subset(df, duplicated(data[,15:col_length]) == FALSE)
+  
+  #Remove Redundant columns and Removing Empty ABCD, Etiology
+  df <- df %>% 
+        select(-c(redundant_cols)) %>%
+        filter(!is.na(Airway) & !is.na(Breathing) & !is.na(Circulation) & !is.na(Disability)) %>%
+        filter(!is.na(Etiology))
+}
+```
+
+```{r}
+redundant_cols <- c('X' , 'Unnamed..0' , 'No' , 'X_id' , 'form' , 'owner' , 'Type', 'createdOn', 'Patient.ID' , 'Patient.name', 'Unnamed..71')
+col_length <- length(colnames(data))
+
+data <- preprocessing(data, redundant_cols)
+```
+
+Distribution of Age Boxplot
+```{r}
+data$Gender <- as.factor(data$Gender)
+data$Age..in.Months. <- as.integer(data$Age..in.Months.)
+#df$Age..in.Months. <- df$Age..in.Months./12
+age_box <- data %>% 
+            filter(!is.na(Gender)) %>%
+            filter(!is.na(Age..in.Months.)) %>%
+            ggplot(aes(Age..in.Months. , fill = Gender)) + geom_boxplot() 
+```
+
+Age Distribution Density - Density plot
+```{r}
+age_density <- data %>% 
+                filter(!is.na(Gender)) %>%
+                filter(!is.na(Age..in.Months.)) %>%
+                ggplot(aes(Age..in.Months. , fill = Gender)) + geom_density()
+
+age_density
+
+```
+
+Combined Plot
+```{r}
+plot_grid(age_density, age_box, align = "v", nrow = 2, rel_heights = c(3/4,1/4))
+```
+
+Month wise distribution of patients
+```{r}
+#data$Month = as.factor(data$Month)
+month_bar <- data %>% 
+              filter(!is.na(Month)) %>%
+              ggplot(aes(x = Month, y = ..count..)) + geom_bar()
+ month_hist
+```
+
+District wise distribution of patients
+```{r}
+districts <- length(unique(data$District))
+hospitals <- length(unique(data$hospital.name))
+cat('Number of Districts: ', districts)
+cat('\nNumber of Hospitals: ', hospitals)
+district_bar <- data %>%
+                  filter(!is.na(District)) %>%
+                  ggplot(aes(x = District, y = ..count..)) + geom_bar() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+district_bar
+```
+
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
