@@ -96,8 +96,8 @@ Month wise distribution of patients
 #data$Month = as.factor(data$Month)
 month_bar <- data %>% 
               filter(!is.na(Month)) %>%
-              ggplot(aes(x = Month, y = ..count..)) + geom_bar()
- month_hist
+              ggplot(aes(x = Month, y = ..count..)) + geom_bar(fill = 'steel blue')
+ month_bar
 ```
 
 District wise distribution of patients
@@ -108,11 +108,62 @@ cat('Number of Districts: ', districts)
 cat('\nNumber of Hospitals: ', hospitals)
 district_bar <- data %>%
                   filter(!is.na(District)) %>%
-                  ggplot(aes(x = District, y = ..count..)) + geom_bar() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+                  ggplot(aes(x = fct_infreq(District), y = ..count..)) +
+                  geom_bar(fill = 'steel blue') +
+                  xlab('Districts') +
+                  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+                  
 district_bar
 ```
 
+Etiology occurences
+```{r}
+etiology_bar <- data %>% 
+                  filter(!is.na(Etiology)) %>%
+                  top_n(n = 10) %>%
+                  ggplot(aes(x = fct_infreq(Etiology), y = ..count..)) + geom_bar(fill = 'steel blue') +
+                  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+                  xlab('Etiology')
 
+etiology_bar
+```
+
+Death Rates in districts
+```{r}
+overall_deaths <- length(which(data$Outcome == 'Died'))
+cat('Overall Death Percent:', 100*(overall_deaths/length(data$Outcome)),"%")
+
+a <- data %>%
+        group_by(District, Outcome) %>%
+        summarise(total = length(Outcome))
+
+b <- a %>% 
+      group_by(District) %>%
+      summarise(Total = sum(total)) 
+    
+c <- subset(a , a$Outcome == 'Died')
+d = inner_join(b,c, by = 'District')
+d <- d %>% 
+      rename_at("total",~"Died") %>%  
+      select(-Outcome) %>% 
+      mutate(Rate =100*(Died/Total)) %>%
+      arrange(desc(Rate))
+
+death_rates_districtwise <- d %>%
+                              filter(Total > 10) %>%  #removing districts with 10 or fewwer 
+                              
+                              ggplot(aes(x = reorder(District,-Rate), y= Rate)) +geom_bar(stat= "identity", fill = "steel blue") +
+                              theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ylab('Percentage Death Rate')
+death_rates_districtwise
+d
+                              
+```
+
+```{r}
+t <- data %>%
+      filter(Outcome == 'Died') 
+table(t$District)
+```
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
 
