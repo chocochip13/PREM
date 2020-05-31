@@ -13,6 +13,7 @@ library(ggplot2)
 library(grid)
 library(gridExtra)
 library(scales)
+library(formattable)
 ```
 
 Load Data
@@ -20,6 +21,12 @@ Load Data
 data <- read.csv("/Users/ks/Desktop/DDP/PREM/DATA_27APRIL2020/V1_allABCDDF.csv",header=T, na.strings=c("","[]","NA"))
 
 ```
+
+Setting default alignment to center
+```{r}
+theme_update(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+
 Boxplot For Age distribution
 ```{r}
 data$Gender <- as.factor(data$Gender)
@@ -27,7 +34,11 @@ data$Age..in.Months. <- as.integer(data$Age..in.Months.)
 data %>% 
   filter(!is.na(Gender)) %>%
   filter(!is.na(Age..in.Months.)) %>%
-  ggplot(aes(Age..in.Months. , fill = Gender)) + geom_boxplot() + coord_flip()
+  ggplot(aes(Age..in.Months. , fill = Gender)) + 
+  geom_boxplot() + 
+  coord_flip() + 
+  xlab("Age in Months") + 
+  ggtitle("Age Distribution in Raw data")
 ```
 
 Removing Outliers
@@ -72,7 +83,19 @@ data$Age..in.Months. <- as.integer(data$Age..in.Months.)
 age_box <- data %>% 
             filter(!is.na(Gender)) %>%
             filter(!is.na(Age..in.Months.)) %>%
-            ggplot(aes(Age..in.Months. , fill = Gender)) + geom_boxplot() 
+            ggplot(aes(Age..in.Months. , fill = Gender)) + 
+            geom_boxplot(add = "jitter") +
+            xlab("Age in Months") + 
+             theme(legend.position = "none", plot.title = element_text(hjust = 0.5, size=12, face="bold"),
+        plot.margin = unit(c(1, 5.5, 5.5, 20), "points"),  # remove margin on top for better looking co plot
+        panel.background = element_rect(fill = "white",  # better grids
+                                colour = "white",
+                                size = 0.5, linetype = "solid"),
+        panel.grid.major = element_line(size = 0.5, linetype = 'solid',
+                                colour = "grey"),
+        axis.title.y = element_blank(),
+        strip.text.x = element_blank())
+age_box
 ```
 
 Age Distribution Density - Density plot
@@ -80,7 +103,21 @@ Age Distribution Density - Density plot
 age_density <- data %>% 
                 filter(!is.na(Gender)) %>%
                 filter(!is.na(Age..in.Months.)) %>%
-                ggplot(aes(Age..in.Months. , fill = Gender)) + geom_density()
+                ggplot(aes(Age..in.Months. , fill = Gender)) + 
+                geom_density() +
+                ggtitle("Age Distribution") +
+                xlab("") +
+                ylab("Density") +
+                 theme(legend.position = c(0.95,0.8),   # position inside the plot
+        legend.background = element_blank(),  # remove white background blocking grid 
+        legend.key.size = unit(0.2, "cm"),  # reduce the size of legend elements
+        plot.margin = unit(c(9, 5.5, 2, 20), "points"),  # add top margin, and reduce bottom, makes co plot better
+        panel.background = element_rect(fill = "white",
+                                colour = "white",
+                                size = 0.5, linetype = "solid"),  # better grids
+        panel.grid.major = element_line(size = 0.5, linetype = 'solid',
+                                colour = "grey"),
+        axis.title.y = element_blank())
 
 age_density
 
@@ -88,16 +125,33 @@ age_density
 
 Combined Plot
 ```{r}
-plot_grid(age_density, age_box, align = "v", nrow = 2, rel_heights = c(3/4,1/4))
+combined_AgeDistribution <- plot_grid(age_density, age_box, align = "v", nrow = 2, rel_heights = c(3/4,1/4))
+ggsave("Plots/combined_AgeDistribution.tiff", dpi = 300)
 ```
+```{r}
+combined_AgeDistribution
+
+```
+
 
 Month wise distribution of patients
 ```{r}
-#data$Month = as.factor(data$Month)
-month_bar <- data %>% 
+data$Month = as.factor(data$Month)
+TotalPatients <- paste("Total Patients:", length(data$Outcome))
+
+Monthwise_Count_bar <- data %>% 
               filter(!is.na(Month)) %>%
-              ggplot(aes(x = Month, y = ..count..)) + geom_bar(fill = 'steel blue')
- month_bar
+              ggplot(aes(x = Month, y = ..count..)) + 
+              geom_bar(fill = 'steel blue') +
+              labs(x = "Months",
+                   y = "Count",
+                   title = "Monthwise Patients Count",
+                   subtitle = paste0(TotalPatients)) +
+              scale_y_continuous(limits = c(0,2500)) +
+              theme(plot.subtitle = element_text(hjust = 1, face = "bold.italic"))
+ Monthwise_Count_bar
+ ggsave("Plots/Monthwise_Count_bar.tiff", dpi = 300)
+ 
 ```
 
 District wise distribution of patients
@@ -106,26 +160,36 @@ districts <- length(unique(data$District))
 hospitals <- length(unique(data$hospital.name))
 cat('Number of Districts: ', districts)
 cat('\nNumber of Hospitals: ', hospitals)
-district_bar <- data %>%
+TotalPatients <- paste("Total Patients:", length(data$Outcome))
+DistrictwisePatientCount_bar <- data %>%
                   filter(!is.na(District)) %>%
                   ggplot(aes(x = fct_infreq(District), y = ..count..)) +
                   geom_bar(fill = 'steel blue') +
-                  xlab('Districts') +
-                  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+                  labs(x = "Districts",
+                       y = "Count",
+                       title = "Districtwise Patient Count",
+                       subtitle = paste0(TotalPatients)) +
+                  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+                        plot.subtitle = element_text(hjust = 1, face = "bold.italic")) 
                   
-district_bar
+DistrictwisePatientCount_bar
+ggsave("Plots/DistrictwisePatientCount_bar.tiff", dpi = 300)
 ```
 
 Etiology occurences
 ```{r}
-etiology_bar <- data %>% 
+EtiologyCombinations_bar <- data %>% 
                   filter(!is.na(Etiology)) %>%
                   top_n(n = 10) %>%
-                  ggplot(aes(x = fct_infreq(Etiology), y = ..count..)) + geom_bar(fill = 'steel blue') +
+                  ggplot(aes(x = fct_infreq(Etiology), y = ..count..)) + 
+                  geom_bar(fill = 'steel blue') +
                   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-                  xlab('Etiology')
+                  xlab('Etiology') +
+                  ylab("Count") +
+                  ggtitle("Etiology Combinations Count")
 
-etiology_bar
+EtiologyCombinations_bar
+ggsave("Plots/EtiologyCombinations_bar.tiff",dpi = 300)
 ```
 
 Death Rates in districts
@@ -148,21 +212,69 @@ d <- d %>%
       select(-Outcome) %>% 
       mutate(Rate =100*(Died/Total)) %>%
       arrange(desc(Rate))
+d$Rate = formattable(d$Rate, digits = 2, format = "f")
+TotalDeaths <- paste("Total Deaths: ", sum(d$Died))
+DeathRates_districtwise <- d %>%
+                              filter(Total > 50) %>%  #removing districts with 10 or fewwer 
+                              ggplot(aes(x = reorder(District,-Rate), y= Rate)) +
+                              geom_bar(stat= "identity", fill = "steel blue") +
+                              theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+                              geom_text(aes(label=Rate), position=position_dodge(width=0.9), vjust=-0.25) +
+                              labs(x = "Districts",
+                                   y = '% Death Rate',
+                                   title = "Death Rate - Districtwise",
+                                   subtitle = paste0(TotalDeaths)) + 
+                              theme(panel.border = element_blank(),
+                                    panel.grid.major = element_blank(),
+                                    panel.grid.minor = element_blank(),
+                                    axis.line = element_line(size = 0.5, linetype = "solid",colour = "black"),
+                                    plot.subtitle = element_text(hjust = 1, face = "bold.italic"))
+DeathRates_districtwise
+ggsave("Plots/DeathRates_districtwise.tiff", dpi = 300)
 
-death_rates_districtwise <- d %>%
-                              filter(Total > 10) %>%  #removing districts with 10 or fewwer 
-                              
-                              ggplot(aes(x = reorder(District,-Rate), y= Rate)) +geom_bar(stat= "identity", fill = "steel blue") +
-                              theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ylab('Percentage Death Rate')
-death_rates_districtwise
-d
-                              
 ```
 
+Referred Out Rates
 ```{r}
-t <- data %>%
-      filter(Outcome == 'Died') 
-table(t$District)
+overall_deaths <- length(which(data$Outcome == 'Died'))
+cat('Overall Death Percent:', 100*(overall_deaths/length(data$Outcome)),"%")
+
+a <- data %>%
+        group_by(District, Outcome) %>%
+        summarise(total = length(Outcome))
+
+b <- a %>% 
+      group_by(District) %>%
+      summarise(Total = sum(total)) 
+    
+c <- subset(a , a$Outcome == 'ReferredOut')
+d = inner_join(b,c, by = 'District')
+d <- d %>% 
+      rename_at("total",~"ReferredOut") %>%  
+      select(-Outcome) %>% 
+      mutate(Rate =100*(ReferredOut/Total)) %>%
+      arrange(desc(Rate))
+d$Rate = formattable(d$Rate, digits = 2, format = "f")
+
+TotalReferredOut = paste("Total Referred Outs: ", sum(d$ReferredOut))
+RefferedOutRates_districtwise <- d %>%
+                              filter(Total > 50) %>%  #removing districts with 10 or fewwer 
+                              ggplot(aes(x = reorder(District,-Rate), y= Rate)) +
+                              geom_bar(stat= "identity", fill = "steel blue") +
+                              theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+                              geom_text(aes(label=Rate), position=position_dodge(width=0.9), vjust=-0.25, size = 3) +
+                              labs(x = "Districts",
+                                   y = "% Referred Out Rate",
+                                   title = "Referred Out Rate - Districtwise",
+                                   subtitle = paste0(TotalReferredOut)) + 
+                              theme(panel.border = element_blank(),
+                                    panel.grid.major = element_blank(),
+                                    panel.grid.minor = element_blank(),
+                                    plot.subtitle = element_text(hjust = 1, face = "bold.italic"),
+                                    axis.line = element_line(size = 0.5, linetype = "solid",colour = "black"))
+RefferedOutRates_districtwise
+ggsave("Plots/RefferedOutRates_districtwise.tiff", dpi = 300)
+
 ```
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
