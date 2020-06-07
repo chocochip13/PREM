@@ -252,3 +252,65 @@ basic_preproc <- function(df,red_cols)
   
 }
 
+disease_preproc <- function(df, red_cols){
+  df <- df %>%
+    select(-c(red_cols))
+  
+  #Etiology coloumns 52:81
+  df <- df %>%
+    mutate(Etiology = gsub("\\[|\\]", "", Etiology)) %>%
+    mutate(Etiology = as.character(Etiology)) %>%
+    mutate(Etiology = strsplit(Etiology, ","))
+  etiology <<- colnames(mtabulate(df$Etiology))
+  df <- cbind(df,mtabulate(df$Etiology))
+  df <- df %>% select(-c("Etiology"," Breathlessness")) #Two columns formed with a space in between, hence remove it.
+  
+  df <- df %>%
+    mutate(Cardiac = gsub("\\[|\\]", "", Cardiac)) %>%
+    mutate(Cardiac = as.character(Cardiac)) %>%
+    mutate(Cardiac = strsplit(Cardiac, ","))
+  cardiac <<- colnames(mtabulate(df$Cardiac))
+  df <- cbind(df,mtabulate(df$Cardiac))
+  df <- df %>% select(-c("Cardiac","NO","Normal","NORMAL","-"))
+  
+  df <- df %>%
+    mutate(Bronchodialators = gsub("\\[|\\]", "", Bronchodialators)) %>%
+    mutate(Bronchodialators = as.character(Bronchodialators)) %>%
+    mutate(Bronchodialators = strsplit(Bronchodialators, ","))
+  bronchodialators <<- colnames(mtabulate(df$Bronchodialators))
+  df <- cbind(df,mtabulate(df$Bronchodialators))
+  df <- df %>% select(-c("Bronchodialators","NO","-","FALSE")) #Removin unecessary columns
+  
+  df <- df %>%
+    mutate(Inotrope = gsub("\\[|\\]", "", Inotrope)) %>%
+    mutate(Inotrope = as.character(Inotrope)) %>%
+    mutate(Inotrope = strsplit(Inotrope, ","))
+  inotrope <<- colnames(mtabulate(df$Inotrope))
+  df <- cbind(df,mtabulate(df$Inotrope))
+  df <- df %>% select(-c("Inotrope","-","NO","FALSE"))
+  
+  df <- df %>%
+    mutate(Anti.Fit.Medication = gsub("\\[|\\]", "", Anti.Fit.Medication)) %>%
+    mutate(Anti.Fit.Medication = as.character(Anti.Fit.Medication)) %>%
+    mutate(Anti.Fit.Medication = strsplit(Anti.Fit.Medication, ","))
+  anti.Fit.Medication <<- colnames(mtabulate(df$Anti.Fit.Medication))
+  df <- cbind(df,mtabulate(df$Anti.Fit.Medication))
+  df <- df %>% select(-c("Anti.Fit.Medication","-","NO","FALSE","TRUE")) 
+  
+  df <- df %>%
+    mutate(Antibiotic = gsub("\\[|\\]", "", Antibiotic)) %>%
+    mutate(Antibiotic = as.character(Antibiotic)) %>%
+    mutate(Antibiotic = strsplit(Antibiotic, ","))
+  antibiotic <<- colnames(mtabulate(df$Antibiotic))
+  df <- cbind(df,mtabulate(df$Antibiotic))
+  df <- df %>% select(-c("Antibiotic","-","FALSE","NIL","NO"))
+  
+  df <- df %>%
+    mutate(Antidote.for.Poisons = gsub("\\[|\\]", "", Antidote.for.Poisons)) %>%
+    mutate(Antidote.for.Poisons = as.character(Antidote.for.Poisons)) %>%
+    mutate(Antidote.for.Poisons = strsplit(Antidote.for.Poisons, ","))
+  antidote.for.Poisons <<- colnames(mtabulate(df$Antidote.for.Poisons))
+  df <- cbind(df,mtabulate(df$Antidote.for.Poisons))
+  df <- df %>% select(-c("Antidote.for.Poisons","-","FALSE","NO"))
+}
+
