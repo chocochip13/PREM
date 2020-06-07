@@ -9,14 +9,13 @@ basic_preproc <- function(df,red_cols)
     filter(!is.na(Airway) & !is.na(Breathing) & !is.na(Circulation) & !is.na(Disability)) %>%
     filter(!is.na(Etiology))
   df <- df %>% 
-    filter(Version == "v4" | Version == "V4") %>%
     mutate(Version = replace(Version, Version == "v4", "V4"))
   #Making gender binary
   df <- df %>%
     mutate(Gender = as.character(Gender)) %>%
     mutate(Gender = replace(Gender, Gender == "Female", "0")) %>%
     mutate(Gender = replace(Gender, Gender == "Male", "1")) %>%
-    mutate(as.factor(Gender))
+    mutate(Gender = as.factor(Gender))
   #Making Liver Disease to either TRUE or FALSE or NA
   df<- df %>% 
     mutate(Liver.Disease = as.character(Liver.Disease)) %>%
@@ -246,5 +245,4 @@ basic_preproc <- function(df,red_cols)
     mutate(Anti.Snake.Venom = as.factor(Anti.Snake.Venom))
   
 }
-
 
