@@ -1,0 +1,45 @@
+---
+title: "Binarised Dataset"
+output: html_notebook
+---
+
+Load Libraries
+```{r}
+library(dplyr)
+library(tidyverse)
+library(qdapTools)
+```
+
+Load Data
+```{r}
+data <- read.csv("/Users/ks/Desktop/DDP/PREM/DATA_27APRIL2020/V1_allABCDDF.csv",header=T, na.strings=c("","[]","NA"))
+```
+
+Preprocessing
+```{r}
+source("preprocessing.R")
+redundant_cols <- c('X' , 'Unnamed..0' , 'No' , 'X_id' , 'form' , 'owner' , 'Type', 'createdOn', 'Patient.ID' , 'Patient.name', 'Unnamed..71')
+col_length <- length(colnames(data))
+
+data <- basic_preproc(data, redundant_cols)
+```
+
+
+Making the binary dataset
+```{r}
+redundant_cols <- c("Version","District","hospital.name","Year","Month","Date","Referred.Out.Institute.Name","Reason.For.Referal","Time.of.Arrival","Time.of.first.treatment","Time.of.transfer")
+data <- disease_preproc(data, redundant_cols)
+#While splitting columns the columns with redundant names like "NIL", "NO","FALSE" manually. Check the preprocessing file with disease_preproc function
+```
+
+
+```{r}
+write.csv(data,"/Users/ks/Desktop/DDP/PREM/DATA_27APRIL2020/binarised_data_disease.csv")
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
