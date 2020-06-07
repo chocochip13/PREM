@@ -5,7 +5,7 @@ basic_preproc <- function(df,red_cols)
   
   #Remove Redundant columns and Removing Empty ABCD, Etiology
   df <- df %>% 
-    select(-c(redundant_cols)) %>%
+    select(-c(red_cols)) %>%
     filter(!is.na(Airway) & !is.na(Breathing) & !is.na(Circulation) & !is.na(Disability)) %>%
     filter(!is.na(Etiology))
   df <- df %>% 
@@ -16,6 +16,12 @@ basic_preproc <- function(df,red_cols)
     mutate(Gender = replace(Gender, Gender == "Female", "0")) %>%
     mutate(Gender = replace(Gender, Gender == "Male", "1")) %>%
     mutate(Gender = as.factor(Gender))
+  
+  df<- df %>% 
+    mutate(Liver.Disease = as.character(Liver.Disease))  %>%
+    mutate(Liver.Disease = replace(Liver.Disease, Liver.Disease == "NORMAL", "0")) %>%
+    mutate(Liver.Disease = replace(Liver.Disease, Liver.Disease == "Not Normal", "1")) %>%
+    mutate(Liver.Disease = as.factor(Liver.Disease))
   #Making Liver Disease to either TRUE or FALSE or NA
   df<- df %>% 
     mutate(Liver.Disease = as.character(Liver.Disease)) %>%
