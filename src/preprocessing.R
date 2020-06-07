@@ -11,6 +11,12 @@ basic_preproc <- function(df,red_cols)
   df <- df %>% 
     filter(Version == "v4" | Version == "V4") %>%
     mutate(Version = replace(Version, Version == "v4", "V4"))
+  #Making gender binary
+  df <- df %>%
+    mutate(Gender = as.character(Gender)) %>%
+    mutate(Gender = replace(Gender, Gender == "Female", "0")) %>%
+    mutate(Gender = replace(Gender, Gender == "Male", "1")) %>%
+    mutate(as.factor(Gender))
   #Making Liver Disease to either TRUE or FALSE or NA
   df<- df %>% 
     mutate(Liver.Disease = as.character(Liver.Disease)) %>%
