@@ -242,8 +242,8 @@ ggsave("Plots/DeathRates_districtwise.jpg", dpi = 300)
 
 Referred Out Rates
 ```{r}
-overall_deaths <- length(which(data$Outcome == 'Died'))
-cat('Overall Death Percent:', 100*(overall_deaths/length(data$Outcome)),"%")
+overall_deaths <- length(which(data$Outcome == 'ReferredOut'))
+cat('Overall Referred Out Percent:', 100*(overall_deaths/length(data$Outcome)),"%")
 
 a <- data %>%
         group_by(District, Outcome) %>%
@@ -281,6 +281,58 @@ RefferedOutRates_districtwise <- d %>%
 RefferedOutRates_districtwise
 ggsave("Plots/RefferedOutRates_districtwise.jpg", dpi = 300)
 
+
+```
+
+```{r}
+overall_deaths <- length(which(data$Outcome == 'ReferredOut'))
+cat('Overall Referred Out Percent:', 100*(overall_deaths/length(data$Outcome)),"%")
+
+
+onlyNArows_idx <- data[23:55] %>%
+  is.na() %>%
+  apply(MARGIN = 1, FUN = all)
+
+
+treat_na = data[onlyNArows_idx,]
+a <- treat_na %>%
+        group_by(District, Outcome) %>%
+        summarise(total = length(Outcome))
+
+b <- a %>% 
+      group_by(District) %>%
+      summarise(Total = sum(total)) 
+    
+c <- subset(a , a$Outcome == 'ReferredOut')
+d = inner_join(b,c, by = 'District')
+d <- d %>% 
+      rename_at("total",~"ReferredOut") %>%  
+      select(-Outcome) %>% 
+      mutate(Rate =100*(ReferredOut/Total)) %>%
+      arrange(desc(Rate))
+d$Rate = formattable(d$Rate, digits = 2, format = "f")
+
+TotalReferredOut = paste("Total Referred Outs without treatment: ", sum(d$ReferredOut))
+RefferedOutRates_districtwise <- d %>%
+                              filter(Total > 50) %>%  #removing districts with 50 or fewwer 
+                              ggplot(aes(x = reorder(District,-Rate), y= Rate)) +
+                              geom_bar(stat= "identity", fill = "steel blue") +
+                              theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+                              geom_text(aes(label=Rate), position=position_dodge(width=0.9), vjust=-0.25, size = 3) +
+                              labs(x = "Districts",
+                                   y = "% Referred Out Rate",
+                                   title = "Referred Out Rate without Treatment - Districtwise",
+                                   subtitle = paste0(TotalReferredOut)) + 
+                              theme(panel.border = element_blank(),
+                                    panel.grid.major = element_blank(),
+                                    panel.grid.minor = element_blank(),
+                                    plot.subtitle = element_text(hjust = 1, face = "bold.italic"),
+                                    axis.line = element_line(size = 0.5, linetype = "solid",colour = "black"))
+RefferedOutRates_districtwise
+ggsave("Plots/RefferedOutRates_districtwise.jpg", dpi = 300)
+
+
+```
 
 ```
 
