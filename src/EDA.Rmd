@@ -334,13 +334,55 @@ ggsave("Plots/RefferedOutRates_districtwise.jpg", dpi = 300)
 
 ```
 
-```
 
-Saving Plots
+Preprocessing into binarised data
 ```{r}
-
+redundant_cols <- c("Version","District","hospital.name","Year","Month","Date","Referred.Out.Institute.Name","Reason.For.Referal","Time.of.Arrival","Time.of.first.treatment","Time.of.transfer")
+binarised_data <- disease_preproc(data, redundant_cols)
 
 ```
+
+Etiology Combinations
+```{r}
+combination_etiology <- data.frame(matrix(ncol=2,nrow=0, dimnames=list(NULL, c("Etiology Combinations", "Frequency"))))
+combination_etiology <- combination_etiology %>%
+                            mutate(Etiology.Combinations = as.character(Etiology.Combinations)) %>%
+                            mutate(Frequency = as.integer(Frequency))
+for (i in 1:29) {
+  for (j in i:29) {
+    t <- table(etiology[,i], etiology[,j])
+    
+    if(names(etiology)[i] != names(etiology)[j]) {
+       cmb<- c(names(etiology)[i], names(etiology)[j])
+       cmb<- paste(cmb, collapse = ", ")
+       if(t[4] > 50){combination_etiology <- combination_etiology %>% add_row(Etiology.Combinations = cmb, Frequency = t[4])}
+    } else{
+    if(t[4] > 50){combination_etiology <- combination_etiology %>% add_row(Etiology.Combinations = names(etiology)[i], Frequency = t[4])}
+    }
+  }
+}
+```
+
+Etiology Combinations Plot
+```{r}
+theme_update(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+
+etiology_combinations_bar <- combination_etiology %>% top_n(20, Frequency) %>%
+                                    ggplot(aes(x = reorder(Etiology.Combinations,-Frequency) ,y=Frequency)) + 
+                                    geom_bar(stat = "identity", fill = 'steel blue') + 
+                                    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+                              labs(x = "Etiology",
+                                   y = "Count",
+                                   title = "Etiology Combinations") + 
+                              theme(panel.border = element_blank(),
+                                    panel.grid.major = element_blank(),
+                                    panel.grid.minor = element_blank(),
+                                    plot.subtitle = element_text(hjust = 1, face = "bold.italic"),
+                                    axis.line = element_line(size = 0.5, linetype = "solid", colour = "black"))
+etiology_combinations_bar
+```
+
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
 
