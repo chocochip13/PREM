@@ -3,14 +3,26 @@ basic_preproc <- function(df, red_cols)
   # Removing duplicates
   df <- subset(df, duplicated(data[,15:col_length]) == FALSE)
   
-  #Remove Redundant columns and Removing Empty ABCD, Etiology
+  #Remove Redundant columns and Removing Empty ABCD and multiple, Etiology
   df <- df %>% 
     select(-all_of(red_cols)) %>%
     filter(!is.na(Airway) & !is.na(Breathing) & !is.na(Circulation) & !is.na(Disability)) %>%
-    filter(!is.na(Etiology))
+    filter(!grepl(",", Airway) & !grepl(",", Breathing) & !grepl(",", Circulation) & !grepl(",", Disability)) %>%
+    filter(!is.na(Etiology)) 
+  #Making the ABCD as factors
   df <- df %>% 
-    mutate(Version = replace(Version, Version == "v4", "V4"))
-  #Replace Codes for ABCD
+    mutate(Version = replace(Version, Version == "v4", "V4")) %>%
+    mutate(Airway = gsub("\\[|\\]", "", Airway)) %>%
+    mutate(Airway = replace(Airway, Airway == "Normal", "Clear airway")) %>%
+    mutate(Airway = as.factor(Airway)) %>% 
+    mutate(Breathing = gsub("\\[|\\]", "", Breathing)) %>%
+    mutate(Breathing = replace(Breathing, Breathing == "distress", "Distress")) %>%
+    mutate(Breathing = as.factor(Breathing)) %>% 
+    mutate(Circulation = gsub("\\[|\\]", "", Circulation)) %>%
+    mutate(Circulation = replace(Circulation, Circulation == "normal", "Normal")) %>%
+    mutate(Circulation = as.factor(Circulation)) %>% 
+    mutate(Disability = gsub("\\[|\\]", "", Disability)) %>%
+    mutate(Disability = as.factor(Disability)) 
   
   #Making gender binary
   df <- df %>%
@@ -18,6 +30,11 @@ basic_preproc <- function(df, red_cols)
     mutate(Gender = replace(Gender, Gender == "Female", "0")) %>%
     mutate(Gender = replace(Gender, Gender == "Male", "1")) %>%
     mutate(Gender = as.factor(Gender))
+
+  df<- df %>% 
+    mutate(RS = as.character(RS))  %>%
+    mutate(RS = replace(RS, RS == "ASTHMA", "[Asthma]")) %>%
+    mutate(RS = as.factor(RS))
   
   df<- df %>% 
     mutate(Liver.Disease = as.character(Liver.Disease))  %>%
@@ -66,6 +83,7 @@ basic_preproc <- function(df, red_cols)
     mutate(Post.Surgical = as.character(Post.Surgical)) %>%
     mutate(Post.Surgical = replace(Post.Surgical, Post.Surgical == "normal", "0")) %>%
     mutate(Post.Surgical = replace(Post.Surgical, Post.Surgical == "NORMAL", "0")) %>%
+    mutate(Post.Surgical = replace(Post.Surgical, Post.Surgical == "no", "0")) %>%
     mutate(Post.Surgical = replace(Post.Surgical, Post.Surgical == "-", NA)) %>%
     mutate(Post.Surgical = replace(Post.Surgical, Post.Surgical == "FALSE", "0")) %>%   
     mutate(Post.Surgical = replace(Post.Surgical, Post.Surgical == "TRUE", "1")) %>%
@@ -75,6 +93,7 @@ basic_preproc <- function(df, red_cols)
     mutate(Bottle.Fed = as.character(Bottle.Fed)) %>%
     mutate(Bottle.Fed = replace(Bottle.Fed, Bottle.Fed == "normal", "0")) %>%
     mutate(Bottle.Fed = replace(Bottle.Fed, Bottle.Fed == "NORMAL", "0")) %>%
+    mutate(Bottle.Fed = replace(Bottle.Fed, Bottle.Fed == "no", "0")) %>%
     mutate(Bottle.Fed = replace(Bottle.Fed, Bottle.Fed == "-", NA)) %>%
     mutate(Bottle.Fed = replace(Bottle.Fed, Bottle.Fed == "FALSE", "0")) %>%   
     mutate(Bottle.Fed = replace(Bottle.Fed, Bottle.Fed == "TRUE", "1")) %>%
@@ -84,6 +103,8 @@ basic_preproc <- function(df, red_cols)
     mutate(Poor.child.rearing.practices = as.character(Poor.child.rearing.practices)) %>%
     mutate(Poor.child.rearing.practices = replace(Poor.child.rearing.practices, Poor.child.rearing.practices == "normal", "0")) %>%
     mutate(Poor.child.rearing.practices = replace(Poor.child.rearing.practices, Poor.child.rearing.practices == "NORMAL", "0")) %>%
+    mutate(Poor.child.rearing.practices = replace(Poor.child.rearing.practices, Poor.child.rearing.practices == "no", "0")) %>%
+    mutate(Poor.child.rearing.practices = replace(Poor.child.rearing.practices, Poor.child.rearing.practices == "NO", "0")) %>%
     mutate(Poor.child.rearing.practices = replace(Poor.child.rearing.practices, Poor.child.rearing.practices == "-", NA)) %>%
     mutate(Poor.child.rearing.practices = replace(Poor.child.rearing.practices, Poor.child.rearing.practices == "FALSE", "0")) %>%   
     mutate(Poor.child.rearing.practices = replace(Poor.child.rearing.practices, Poor.child.rearing.practices == "TRUE", "1")) %>%
@@ -163,8 +184,19 @@ basic_preproc <- function(df, red_cols)
     mutate(Intubation = as.factor(Intubation))
   
   df<- df %>% 
+    mutate(Bronchodialators = as.character(Bronchodialators)) %>%
+    mutate(Bronchodialators = replace(Bronchodialators, Bronchodialators == "no", "0")) %>%
+    mutate(Bronchodialators = replace(Bronchodialators, Bronchodialators == "NO", "0")) %>%
+    mutate(Bronchodialators = replace(Bronchodialators, Bronchodialators == "NORMAL", "0")) %>%
+    mutate(Bronchodialators = replace(Bronchodialators, Bronchodialators == "-", NA)) %>%
+    mutate(Bronchodialators = replace(Bronchodialators, Bronchodialators == "FALSE", "0")) %>%   
+    mutate(Bronchodialators = replace(Bronchodialators, Bronchodialators == "TRUE", "1")) %>%
+    mutate(Bronchodialators = as.factor(Bronchodialators))
+
+  df<- df %>% 
     mutate(Cardiac.Massage = as.character(Cardiac.Massage)) %>%
     mutate(Cardiac.Massage = replace(Cardiac.Massage, Cardiac.Massage == "no", "0")) %>%
+    mutate(Cardiac.Massage = replace(Cardiac.Massage, Cardiac.Massage == "NO", "0")) %>%
     mutate(Cardiac.Massage = replace(Cardiac.Massage, Cardiac.Massage == "NORMAL", "0")) %>%
     mutate(Cardiac.Massage = replace(Cardiac.Massage, Cardiac.Massage == "-", NA)) %>%
     mutate(Cardiac.Massage = replace(Cardiac.Massage, Cardiac.Massage == "FALSE", "0")) %>%   
@@ -179,6 +211,16 @@ basic_preproc <- function(df, red_cols)
     mutate(Normal.Saline.Bolus = replace(Normal.Saline.Bolus, Normal.Saline.Bolus == "FALSE", "0")) %>%   
     mutate(Normal.Saline.Bolus = replace(Normal.Saline.Bolus, Normal.Saline.Bolus == "TRUE", "1")) %>%
     mutate(Normal.Saline.Bolus = as.factor(Normal.Saline.Bolus))
+
+  df<- df %>% 
+    mutate(Inotrope = as.character(Inotrope)) %>%
+    mutate(Inotrope = replace(Inotrope, Inotrope == "no", "0")) %>%
+    mutate(Inotrope = replace(Inotrope, Inotrope == "NO", "0")) %>%
+    mutate(Inotrope = replace(Inotrope, Inotrope == "-", NA)) %>%
+    mutate(Inotrope = replace(Inotrope, Inotrope == "FALSE", "0")) %>%   
+    mutate(Inotrope = replace(Inotrope, Inotrope == "TRUE", "1")) %>%
+    mutate(Inotrope = replace(Inotrope, Inotrope == "DOPAMINE", "[Dopamine]")) %>%
+    mutate(Inotrope = as.factor(Inotrope))
   
   df<- df %>% 
     mutate(X25..Dextrose = as.character(X25..Dextrose)) %>%
@@ -265,42 +307,71 @@ disease_preproc <- function(df, red_cols){
     mutate(Etiology = strsplit(Etiology, ","))
   etiology <<- mtabulate(df$Etiology)
   etiology <<- etiology %>% 
-                  select(-c(" Breathlessness")) %>%
+                  select(-c(" Breathlessness", "Asthma")) %>%
                   mutate_all(funs(as.logical(.)))
   
   df <- cbind(df,mtabulate(df$Etiology))
-  df <- df %>% select(-c("Etiology"," Breathlessness")) #Two columns formed with a space in between, hence remove it.
+  df <- df %>% select(-c("Etiology"," Breathlessness", "Asthma")) #Two columns formed with a space in between, hence remove it.
   
   df <- df %>%
     mutate(Cardiac = gsub("\\[|\\]", "", Cardiac)) %>%
     mutate(Cardiac = as.character(Cardiac)) %>%
     mutate(Cardiac = strsplit(Cardiac, ","))
-  cardiac <<- mtabulate(df$Cardiac) %>% mutate_all(funs(as.logical(.)))
+  cardiac <<- mtabulate(df$Cardiac) %>%
+              select(-c("NO","Normal","NORMAL","-")) %>% 
+              mutate_all(funs(as.logical(.)))
 
   df <- cbind(df,mtabulate(df$Cardiac))
   df <- df %>% select(-c("Cardiac","NO","Normal","NORMAL","-"))
   
   df <- df %>%
+    mutate(CNS = gsub("\\[|\\]", "", CNS)) %>%
+    mutate(CNS = as.character(CNS)) %>%
+    mutate(CNS = strsplit(CNS, ","))
+  CNS <<- mtabulate(df$CNS) %>%
+          select(-c("NO","Normal","NORMAL","-")) %>% 
+          mutate_all(funs(as.logical(.)))
+  
+  df <- cbind(df,mtabulate(df$CNS))
+  df <- df %>% select(-c("CNS","NO","Normal","NORMAL","-"))
+  
+  df <- df %>%
+    mutate(RS = gsub("\\[|\\]", "", RS)) %>%
+    mutate(RS = as.character(RS)) %>%
+    mutate(RS = strsplit(RS, ","))
+  
+  RS <<- mtabulate(df$RS) %>%
+    select(-c("NO","Normal","NORMAL","-")) %>% 
+    mutate_all(funs(as.logical(.)))
+  
+  df <- cbind(df,mtabulate(df$RS))
+  df <- df %>% select(-c("RS","NO","Normal","NORMAL","-"))
+  
+  
+  df <- df %>%
     mutate(Bronchodialators = gsub("\\[|\\]", "", Bronchodialators)) %>%
     mutate(Bronchodialators = as.character(Bronchodialators)) %>%
     mutate(Bronchodialators = strsplit(Bronchodialators, ","))
-  bronchodialators <<- mtabulate(df$Bronchodialators)%>% mutate_all(funs(as.logical(.)))
+  bronchodialators <<- mtabulate(df$Bronchodialators)%>% select(-c("0")) %>% mutate_all(funs(as.logical(.)))
   df <- cbind(df,mtabulate(df$Bronchodialators))
-  df <- df %>% select(-c("Bronchodialators","NO","-","FALSE")) #Removin unecessary columns
+  df <- df %>% select(-c("Bronchodialators", "0")) #Removin unecessary columns
   
   df <- df %>%
     mutate(Inotrope = gsub("\\[|\\]", "", Inotrope)) %>%
     mutate(Inotrope = as.character(Inotrope)) %>%
     mutate(Inotrope = strsplit(Inotrope, ","))
-  inotrope <<-  (mtabulate(df$Inotrope)) %>% mutate_all(funs(as.logical(.)))
+  inotrope <<-  (mtabulate(df$Inotrope)) %>% select(-c("0"))%>% mutate_all(funs(as.logical(.)))
   df <- cbind(df,mtabulate(df$Inotrope))
-  df <- df %>% select(-c("Inotrope","-","NO","FALSE"))
+  df <- df %>% select(-c("Inotrope","0"))
   
   df <- df %>%
     mutate(Anti.Fit.Medication = gsub("\\[|\\]", "", Anti.Fit.Medication)) %>%
     mutate(Anti.Fit.Medication = as.character(Anti.Fit.Medication)) %>%
     mutate(Anti.Fit.Medication = strsplit(Anti.Fit.Medication, ","))
-  anti.Fit.Medication <<-  (mtabulate(df$Anti.Fit.Medication)) %>% mutate_all(funs(as.logical(.)))
+  anti.Fit.Medication <<-  (mtabulate(df$Anti.Fit.Medication)) %>% 
+                            select(-c("-","NO","FALSE","TRUE")) %>%
+                            mutate_all(funs(as.logical(.)))
+  
   df <- cbind(df,mtabulate(df$Anti.Fit.Medication))
   df <- df %>% select(-c("Anti.Fit.Medication","-","NO","FALSE","TRUE")) 
   
@@ -308,7 +379,10 @@ disease_preproc <- function(df, red_cols){
     mutate(Antibiotic = gsub("\\[|\\]", "", Antibiotic)) %>%
     mutate(Antibiotic = as.character(Antibiotic)) %>%
     mutate(Antibiotic = strsplit(Antibiotic, ","))
-  antibiotic <<-  (mtabulate(df$Antibiotic)) %>% mutate_all(funs(as.logical(.)))
+  antibiotic <<-  (mtabulate(df$Antibiotic)) %>% 
+                  select(-c("-","FALSE","NIL","NO")) %>%
+                  mutate_all(funs(as.logical(.)))
+  
   df <- cbind(df,mtabulate(df$Antibiotic))
   df <- df %>% select(-c("Antibiotic","-","FALSE","NIL","NO"))
   
@@ -316,7 +390,10 @@ disease_preproc <- function(df, red_cols){
     mutate(Antidote.for.Poisons = gsub("\\[|\\]", "", Antidote.for.Poisons)) %>%
     mutate(Antidote.for.Poisons = as.character(Antidote.for.Poisons)) %>%
     mutate(Antidote.for.Poisons = strsplit(Antidote.for.Poisons, ","))
-  antidote.for.Poisons <<-  (mtabulate(df$Antidote.for.Poisons)) %>% mutate_all(funs(as.logical(.)))
+  antidote.for.Poisons <<-  (mtabulate(df$Antidote.for.Poisons)) %>% 
+                            select(-c("-","FALSE","NO")) %>%
+                            mutate_all(funs(as.logical(.)))
+  
   df <- cbind(df,mtabulate(df$Antidote.for.Poisons))
   df <- df %>% select(-c("Antidote.for.Poisons","-","FALSE","NO"))
 }
