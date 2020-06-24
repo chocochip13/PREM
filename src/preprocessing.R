@@ -398,3 +398,17 @@ disease_preproc <- function(df, red_cols){
   df <- df %>% select(-c("Antidote.for.Poisons","-","FALSE","NO"))
 }
 
+binarise_ABCD <- function(df){
+  df <- cbind(df,mtabulate(df$Airway))
+  df <- df %>% select(-c("Airway")) 
+  
+  df <- cbind(df,mtabulate(df$Breathing))
+  df <- df %>% select(-c("Breathing")) 
+  
+  df <- cbind(df,mtabulate(df$Circulation))
+  df <- df %>% select(-c("Circulation")) 
+  
+  df <- cbind(df,mtabulate(df$Disability))
+  df <- df %>% select(-c("Disability")) 
+  
+}
