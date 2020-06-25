@@ -14,6 +14,8 @@ library(grid)
 library(gridExtra)
 library(scales)
 library(formattable)
+library(cluster)
+library(factoextra)
 ```
 
 Load Data
@@ -383,10 +385,17 @@ etiology_combinations_bar <- combination_etiology %>% top_n(20, Frequency) %>%
 etiology_combinations_bar
 ```
 
+ABCD Combinations
+```{r}
+ABCD_combinations <- data %>% 
+                            count(Airway, Breathing, Circulation, Disability)
+cat("Number of unique combinations: ", nrow(ABCD_combinations))
+ABCD_combinations <- ABCD_combinations %>%
+                        arrange(desc(n))
+print(ABCD_combinations)
+```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+```{r}
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
-
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+```
 
