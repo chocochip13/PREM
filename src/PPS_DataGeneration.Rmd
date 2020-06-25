@@ -1,0 +1,62 @@
+Load Libraries
+```{r}
+library(dplyr)
+library(tidyverse)
+```
+
+Load Data
+```{r}
+data <- read.csv("/Users/ks/Desktop/DDP/PREM/DATA_27APRIL2020/V1_allABCDDF.csv",header=T, na.strings=c("","[]","NA"))
+```
+
+Basic and Binary Preprocessing
+```{r}
+source("preprocessing.R")
+redundant_cols <- c('X' , 'Unnamed..0' , 'No' , 'X_id' , 'form' , 'owner' , 'Type', 'createdOn', 'Patient.ID' , 'Patient.name', 'Unnamed..71')
+col_length <- length(colnames(data))
+
+data <- basic_preproc(data, redundant_cols)
+
+redundant_cols <- c("Version","District","hospital.name","Year","Month","Date","Referred.Out.Institute.Name","Reason.For.Referal","Time.of.Arrival","Time.of.first.treatment","Time.of.transfer")
+binarised_data <- disease_preproc(data, redundant_cols)
+#While splitting columns the columns with redundant names like "NIL", "NO","FALSE" manually. Check the preprocessing file with disease_preproc function
+```
+
+Binarise ABCD
+```{r}
+ABCD.treatment <- binarised_data %>%
+          select(c("Airway","Breathing","Circulation","Disability","Head.Tilt.Chin.Lift" ,"Bag.valve.Mask.Ventilation","CPAP", "Intubation", colnames(bronchodialators), "Cardiac.Massage", "Normal.Saline.Bolus", colnames(inotrope), "X25..Dextrose","CSstabilization", colnames(anti.Fit.Medication)))
+
+ABCD.treatment <- binary_ABCD(ABCD.treatment)
+
+```
+
+AB and Treatment
+```{r}
+ABstreatment <- c("Head.Tilt.Chin.Lift","Bag.valve.Mask.Ventilation","CPAP","Intubation", colnames(bronchodialators))
+AB.treatment <- ABCD.treatment %>%
+                select(c(colnames(airway), colnames(breathing), all_of(ABstreatment)))
+#Write AB and its treatment
+write.csv(AB.treatment, "/Users/ks/Desktop/DDP/PREM/DATA_27APRIL2020/ABCDpps/AB.treatment.csv",row.names = FALSE)
+```
+
+C and Treatment
+```{r}
+Cstreatment <- c("Cardiac.Massage", "Normal.Saline.Bolus", colnames(inotrope))
+
+C.treatment <- ABCD.treatment %>%
+               select(c(colnames(circulation), all_of(Cstreatment)))
+
+write.csv(C.treatment,"/Users/ks/Desktop/DDP/PREM/DATA_27APRIL2020/ABCDpps/C.treatment.csv",row.names = FALSE )
+
+```
+
+D and Treatment
+```{r}
+Dstreatment <- c("X25..Dextrose", "CSstabilization" , colnames(anti.Fit.Medication))
+
+D.treatment <- ABCD.treatment %>% 
+               select(c(colnames(disability), all_of(Dstreatment)))
+write.csv(D.treatment,"/Users/ks/Desktop/DDP/PREM/DATA_27APRIL2020/ABCDpps/D.treatment.csv",row.names = FALSE )
+```
+
