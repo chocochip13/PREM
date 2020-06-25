@@ -1,0 +1,93 @@
+
+Loading Libraries
+```{r}
+library(arules)
+library(arulesViz)
+library(dplyr)
+library(tidyverse)
+library(qdapTools)
+library(RColorBrewer)
+```
+Load Data
+```{r}
+data <- read.csv("/Users/ks/Desktop/DDP/PREM/DATA_27APRIL2020/V1_allABCDDF.csv",header=T, na.strings=c("","[]","NA"))
+```
+Preprocessing into binarised data
+```{r}
+source("preprocessing.R")
+redundant_cols <- c('X' , 'Unnamed..0' , 'No' , 'X_id' , 'form' , 'owner' , 'Type', 'createdOn', 'Patient.ID' , 'Patient.name', 'Unnamed..71')
+col_length <- length(colnames(data))
+
+data <- basic_preproc(data, redundant_cols)
+
+redundant_cols <- c("Version","District","hospital.name","Year","Month","Date","Referred.Out.Institute.Name","Reason.For.Referal","Time.of.Arrival","Time.of.first.treatment","Time.of.transfer")
+binarised_data <- disease_preproc(data, redundant_cols)
+#While splitting columns the columns with redundant names like "NIL", "NO","FALSE" manually. Check the preprocessing file with disease_preproc function
+```
+
+Data subsets
+```{r}
+ABCDtreatment <- binarised_data %>%
+          select(c("Airway","Breathing","Circulation","Disability","Head.Tilt.Chin.Lift" ,"Bag.valve.Mask.Ventilation","CPAP", "Intubation", colnames(bronchodialators), "Cardiac.Massage", "Normal.Saline.Bolus", colnames(inotrope), "X25..Dextrose", colnames(anti.Fit.Medication)))
+
+comorbidities <- binarised_data %>%
+                        select(c(colnames(cardiac), colnames(CNS), colnames(RS),"Renal.Disease" ,"Liver.Disease", "Blood" , "Metabolic",  "Post.Surgical" , "Bottle.Fed" , "Poor.child.rearing.practices" , "PLHA")) %>% mutate_all(funs(as.integer(.))) %>% mutate_all(funs(as.logical(.)))
+
+ABCD <- binarised_data %>% select(c("Airway", "Breathing", "Circulation", "Disability"))
+```
+
+
+Frequency plot-Etiology
+```{r}
+etiology <- as(etiology, "transactions")
+itemFrequencyPlot(etiology,topN=20,type="absolute",col=brewer.pal(8,'Pastel2'), main="Absolute Item Frequency Plot")
+```
+
+```{r}
+rule1_etiology <- apriori(etiology, parameter = list(support = 0.001, confidence = 0.1,minlen = 1, maxlen = 3))
+inspect(head(sort(rule1_etiology, by='lift')))
+```
+
+
+```{r}
+plot(rule1_etiology)
+```
+
+```{r}
+plot(rule1_etiology, method = 'grouped')
+```
+
+```{r}
+plotly_arules(rule1_etiology)
+
+```
+
+```{r}
+comorbidities <- as(comorbidities, "transactions")
+itemFrequencyPlot(comorbidities,topN=20,type="absolute",col=brewer.pal(8,'Pastel2'), main="Absolute Item Frequency Plot")
+```
+
+```{r}
+rule1_como <- apriori(comorbidities, parameter = list(support = 0.001, confidence = 0.05, maxlen = ncol(comorbidities) ))
+```
+
+
+```{r}
+inspect(head(sort(rule1_como, by = "lift"), 10))
+```
+
+```{r}
+plot(rule1_como)
+```
+
+```{r}
+plot(rule1_como, method = 'grouped')
+```
+
+```{r}
+plotly_arules(rule1_como)
+
+```
+
+
+
