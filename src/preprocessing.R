@@ -191,6 +191,7 @@ basic_preproc <- function(df, red_cols)
     mutate(Bronchodialators = replace(Bronchodialators, Bronchodialators == "-", NA)) %>%
     mutate(Bronchodialators = replace(Bronchodialators, Bronchodialators == "FALSE", "0")) %>%   
     mutate(Bronchodialators = replace(Bronchodialators, Bronchodialators == "TRUE", "1")) %>%
+    mutate(Bronchodialators = replace(Bronchodialators, Bronchodialators == "3% Saline", "3%Saline")) %>%
     mutate(Bronchodialators = as.factor(Bronchodialators))
 
   df<- df %>% 
@@ -369,11 +370,11 @@ disease_preproc <- function(df, red_cols){
     mutate(Anti.Fit.Medication = as.character(Anti.Fit.Medication)) %>%
     mutate(Anti.Fit.Medication = strsplit(Anti.Fit.Medication, ","))
   anti.Fit.Medication <<-  (mtabulate(df$Anti.Fit.Medication)) %>% 
-                            select(-c("-","NO","FALSE","TRUE")) %>%
+                            select(-c("-","NO","FALSE","TRUE", "Status Epilepticus","3%saline")) %>%
                             mutate_all(funs(as.logical(.)))
   
   df <- cbind(df,mtabulate(df$Anti.Fit.Medication))
-  df <- df %>% select(-c("Anti.Fit.Medication","-","NO","FALSE","TRUE")) 
+  df <- df %>% select(-c("Anti.Fit.Medication","-","NO","FALSE","TRUE","3%saline","Status Epilepticus")) 
   
   df <- df %>%
     mutate(Antibiotic = gsub("\\[|\\]", "", Antibiotic)) %>%
@@ -398,17 +399,31 @@ disease_preproc <- function(df, red_cols){
   df <- df %>% select(-c("Antidote.for.Poisons","-","FALSE","NO"))
 }
 
-binarise_ABCD <- function(df){
-  df <- cbind(df,mtabulate(df$Airway))
+binary_ABCD <- function(df){
+  
+  disability <<- mtabulate(df$Disability) %>%
+                 rename(Normal.Disability = Normal )
+  df <- cbind(mtabulate(df$Disability),df)
+  df <- df %>% 
+        rename(Normal.Disability = Normal ) %>%
+        select(-c("Disability"))
+  
+  circulation <<- mtabulate(df$Circulation) %>%
+                  rename(Normal.Circulation = Normal)
+  df <- cbind(mtabulate(df$Circulation),df)
+  df <- df %>%
+    rename(Normal.Circulation = Normal) %>%
+    select(-c("Circulation")) 
+  
+  breathing <<- mtabulate(df$Breathing) %>%
+                rename(Normal.Breathing = Normal)
+  df <- cbind(mtabulate(df$Breathing),df)
+  df <- df %>% 
+    rename(Normal.Breathing = Normal ) %>%
+    select(-c("Breathing"))
+  
+  airway <<- mtabulate(df$Airway)
+  df <- cbind(mtabulate(df$Airway),df)
   df <- df %>% select(-c("Airway")) 
-  
-  df <- cbind(df,mtabulate(df$Breathing))
-  df <- df %>% select(-c("Breathing")) 
-  
-  df <- cbind(df,mtabulate(df$Circulation))
-  df <- df %>% select(-c("Circulation")) 
-  
-  df <- cbind(df,mtabulate(df$Disability))
-  df <- df %>% select(-c("Disability")) 
-  
+
 }
