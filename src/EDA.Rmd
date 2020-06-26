@@ -22,7 +22,7 @@ library(qdapTools)
 Load Data
 ```{r}
 data <- read.csv("/Users/ks/Desktop/DDP/PREM/DATA_27APRIL2020/V1_allABCDDF.csv",header=T, na.strings=c("","[]","NA"))
- raw <- read.csv("/Users/ks/Desktop/DDP/PREM/DATA_27APRIL2020/raw_data_2019.csv", header=T, na.strings=c("","[]","NA"))
+raw <- read.csv("/Users/ks/Desktop/DDP/PREM/DATA_27APRIL2020/raw_data_2019.csv", header=T, na.strings=c("","[]","NA"))
 ```
 
 Setting default alignment to center
@@ -243,7 +243,7 @@ ggsave("Plots/DeathRates_districtwise.jpg", dpi = 300)
 
 ```
 
-Referred Out Rates
+Referred Out Rates District
 ```{r}
 overall_deaths <- length(which(data$Outcome == 'ReferredOut'))
 cat('Overall Referred Out Percent:', 100*(overall_deaths/length(data$Outcome)),"%")
@@ -287,18 +287,71 @@ ggsave("Plots/RefferedOutRates_districtwise.jpg", dpi = 300)
 
 ```
 
-ROut Rate With only Assesment
+Referred Out Rates Hospital Wise
+
+```{r}
+overall_deaths <- length(which(data$Outcome == 'ReferredOut'))
+cat('Overall Referred Out Percent:', 100*(overall_deaths/length(data$Outcome)),"%")
+
+a <- data %>%
+        group_by(hospital.name, Outcome) %>%
+        summarise(total = length(Outcome))
+
+b <- a %>% 
+      group_by(hospital.name) %>%
+      summarise(Total = sum(total)) 
+    
+c <- subset(a , a$Outcome == 'ReferredOut')
+d = inner_join(b,c, by = 'hospital.name')
+d <- d %>% 
+      rename_at("total",~"ReferredOut") %>%  
+      select(-Outcome) %>% 
+      mutate(Rate =100*(ReferredOut/Total)) %>%
+      arrange(desc(Rate))
+d$Rate = formattable(d$Rate, digits = 2, format = "f")
+
+TotalReferredOut = paste("Total Referred Outs: ", sum(d$ReferredOut))
+RefferedOutRates_hospital.namewise <- d %>%
+                              filter(Total > 50) %>%  #removing hospital.names with 10 or fewwer 
+                              ggplot(aes(x = reorder(hospital.name,-Rate), y= Rate)) +
+                              geom_bar(stat= "identity", fill = "steel blue") +
+                              theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+                              geom_text(aes(label=Rate), position=position_dodge(width=0.9), vjust=-0.25, size = 3) +
+                              labs(x = "Hospitals",
+                                   y = "% Referred Out Rate",
+                                   title = "Referred Out Rate - Hospitalwise",
+                                   subtitle = paste0(TotalReferredOut)) + 
+                              theme(panel.border = element_blank(),
+                                    panel.grid.major = element_blank(),
+                                    panel.grid.minor = element_blank(),
+                                    plot.subtitle = element_text(hjust = 1, face = "bold.italic"),
+                                    axis.line = element_line(size = 0.5, linetype = "solid",colour = "black"))
+RefferedOutRates_hospital.namewise
+ggsave("Plots/RefferedOutRates_hospital.namewise.jpg", dpi = 300)
+
+
+
+```
+
+
+
+ROut Rate With only Assesment - District
 ```{r}
 overall_deaths <- length(which(data$Outcome == 'ReferredOut'))
 cat('Overall Referred Out Percent:', 100*(overall_deaths/length(data$Outcome)),"%")
 
 
-onlyNArows_idx <- data[23:55] %>%
-  is.na() %>%
-  apply(MARGIN = 1, FUN = all)
+noNArowsABCD_idx <- raw %>% 
+                  select(c("Airway","Breathing","Circulation","Disability")) %>%
+                  is.na() %>%
+                  apply(MARGIN = 1, function(x) any(x %in% FALSE))
 
+onlyNArowsTRT_idx <- raw[noNArowsABCD_idx,] %>%
+                  select(c("Head.Tilt.Chin.Lift" ,"Bag.valve.Mask.Ventilation","CPAP", "Intubation", "Bronchodialators", "Cardiac.Massage", "Normal.Saline.Bolus", "Inotrope", "X25..Dextrose","CSstabilization", "Anti.Fit.Medication")) %>%
+                  is.na() %>%
+                  apply(MARGIN = 1, FUN = all)
 
-treat_na = data[onlyNArows_idx,]
+treat_na = raw[onlyNArowsTRT_idx,]
 a <- treat_na %>%
         group_by(District, Outcome) %>%
         summarise(total = length(Outcome))
@@ -317,7 +370,7 @@ d <- d %>%
 d$Rate = formattable(d$Rate, digits = 2, format = "f")
 
 TotalReferredOut = paste("Total Referred Outs with only Assesment: ", sum(d$ReferredOut))
-RefferedOutRates_districtwise <- d %>%
+RefferedOutRates_onlyAssesment<- d %>%
                               filter(Total > 50) %>%  #removing districts with 50 or fewwer 
                               ggplot(aes(x = reorder(District,-Rate), y= Rate)) +
                               geom_bar(stat= "identity", fill = "steel blue") +
@@ -325,7 +378,7 @@ RefferedOutRates_districtwise <- d %>%
                               geom_text(aes(label=Rate), position=position_dodge(width=0.9), vjust=-0.25, size = 3) +
                               labs(x = "Districts",
                                    y = "% Referred Out Rate",
-                                   title = "ROut Rate With only Assesment",
+                                   title = "ROut Rate With only Assesment - Districts",
                                    subtitle = paste0(TotalReferredOut)) + 
                               theme(panel.border = element_blank(),
                                     panel.grid.major = element_blank(),
@@ -333,13 +386,70 @@ RefferedOutRates_districtwise <- d %>%
                                     plot.subtitle = element_text(hjust = 1, face = "bold.italic"),
                                     axis.line = element_line(size = 0.5, linetype = "solid",colour = "black"))
 
-RefferedOutRates_districtwise
-ggsave("Plots/RefferedOutRates_districtwise.jpg", dpi = 300)
-write.csv(d, "/Users/ks/Desktop/DDP/PREM/Analysis/ReferredOut/OnlyAssesment.csv", row.names = FALSE)
+RefferedOutRates_onlyAssesment
+ggsave("Plots/ROut Rate With only Assesment.jpg", dpi = 300)
+write.csv(d, "/Users/ks/Desktop/DDP/PREM/Analysis/ReferredOut/OnlyAssesment_Districts.csv", row.names = FALSE)
 
 ```
 
-ROut without Assesment
+ROut Rate With only Assesment - Hospital
+```{r}
+overall_deaths <- length(which(data$Outcome == 'ReferredOut'))
+cat('Overall Referred Out Percent:', 100*(overall_deaths/length(data$Outcome)),"%")
+
+
+noNArowsABCD_idx <- raw %>% 
+                  select(c("Airway","Breathing","Circulation","Disability")) %>%
+                  is.na() %>%
+                  apply(MARGIN = 1, function(x) any(x %in% FALSE))
+
+onlyNArowsTRT_idx <- raw[noNArowsABCD_idx,] %>%
+                  select(c("Head.Tilt.Chin.Lift" ,"Bag.valve.Mask.Ventilation","CPAP", "Intubation", "Bronchodialators", "Cardiac.Massage", "Normal.Saline.Bolus", "Inotrope", "X25..Dextrose","CSstabilization", "Anti.Fit.Medication")) %>%
+                  is.na() %>%
+                  apply(MARGIN = 1, FUN = all)
+
+treat_na = raw[onlyNArowsTRT_idx,]
+a <- treat_na %>%
+        group_by(hospital.name, Outcome) %>%
+        summarise(total = length(Outcome))
+
+b <- a %>% 
+      group_by(hospital.name) %>%
+      summarise(Total = sum(total)) 
+    
+c <- subset(a , a$Outcome == 'ReferredOut')
+d = inner_join(b,c, by = 'hospital.name')
+d <- d %>% 
+      rename_at("total",~"ReferredOut") %>%  
+      select(-Outcome) %>% 
+      mutate(Rate =100*(ReferredOut/Total)) %>%
+      arrange(desc(Rate))
+d$Rate = formattable(d$Rate, digits = 2, format = "f")
+
+TotalReferredOut = paste("Total Referred Outs with only Assesment: ", sum(d$ReferredOut))
+RefferedOutRates_onlyAssesment<- d %>%
+                              filter(Total > 50) %>%  #removing hospital.names with 50 or fewwer 
+                              ggplot(aes(x = reorder(hospital.name,-Rate), y= Rate)) +
+                              geom_bar(stat= "identity", fill = "steel blue") +
+                              theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+                              geom_text(aes(label=Rate), position=position_dodge(width=0.9), vjust=-0.25, size = 3) +
+                              labs(x = "Hospitals",
+                                   y = "% Referred Out Rate",
+                                   title = "ROut Rate With only Assesment -Hospital",
+                                   subtitle = paste0(TotalReferredOut)) + 
+                              theme(panel.border = element_blank(),
+                                    panel.grid.major = element_blank(),
+                                    panel.grid.minor = element_blank(),
+                                    plot.subtitle = element_text(hjust = 1, face = "bold.italic"),
+                                    axis.line = element_line(size = 0.5, linetype = "solid",colour = "black"))
+
+RefferedOutRates_onlyAssesment
+ggsave("Plots/ROut Rate With only Assesment.jpg", dpi = 300)
+write.csv(d, "/Users/ks/Desktop/DDP/PREM/Analysis/ReferredOut/OnlyAssesment_Hospitals.csv", row.names = FALSE)
+
+```
+
+ROut without Assesment - District
 ```{r}
 overall_deaths <- length(which(raw$Outcome == 'ReferredOut'))
 cat('Overall Referred Out Percent:', 100*(overall_deaths/length(raw$Outcome)),"%")
@@ -347,8 +457,8 @@ cat('Overall Referred Out Percent:', 100*(overall_deaths/length(raw$Outcome)),"%
 
 onlyNArows_idx <- raw %>% 
                   select(c("Airway","Breathing","Circulation","Disability")) %>%
-                  filter(is.na(Airway) & is.na(Breathing) & is.na(Circulation) & is.na(Disability)) %>%
-                  apply(MARGIN = 1, FUN = all)
+                  is.na() %>%
+                  apply(MARGIN = 1, function(x) any(x %in% TRUE))
 
 
 treat_na = raw[onlyNArows_idx,]
@@ -370,7 +480,7 @@ d <- d %>%
 d$Rate = formattable(d$Rate, digits = 2, format = "f")
 
 TotalReferredOut = paste("Total Referred Outs without Assesment: ", sum(d$ReferredOut))
-RefferedOutRates_districtwise <- d %>%
+RefferedOutRates_WOAssesment<- d %>%
                               filter(Total > 50) %>%  #removing districts with 50 or fewwer 
                               ggplot(aes(x = reorder(District,-Rate), y= Rate)) +
                               geom_bar(stat= "identity", fill = "steel blue") +
@@ -378,7 +488,7 @@ RefferedOutRates_districtwise <- d %>%
                               geom_text(aes(label=Rate), position=position_dodge(width=0.9), vjust=-0.25, size = 3) +
                               labs(x = "Districts",
                                    y = "% Referred Out Rate",
-                                   title = "Referred Out Rate without Assesment",
+                                   title = "ROut Rate without Assesment - District",
                                    subtitle = paste0(TotalReferredOut)) + 
                               theme(panel.border = element_blank(),
                                     panel.grid.major = element_blank(),
@@ -386,13 +496,182 @@ RefferedOutRates_districtwise <- d %>%
                                     plot.subtitle = element_text(hjust = 1, face = "bold.italic"),
                                     axis.line = element_line(size = 0.5, linetype = "solid",colour = "black"))
 
-RefferedOutRates_districtwise
-#ggsave("Plots/RefferedOutRates_districtwise.jpg", dpi = 300)
-#write.csv(d, "/Users/ks/Desktop/DDP/PREM/Analysis/ReferredOut/OnlyAssesment.csv", row.names = FALSE)
+RefferedOutRates_WOAssesment
+ggsave("Plots/ROut without Assesment.jpg", dpi = 300)
+write.csv(d, "/Users/ks/Desktop/DDP/PREM/Analysis/ReferredOut/WOAssesment_District.csv", row.names = FALSE)
 
 ```
 
+ROut without Assesment - Hospitals
+```{r}
+overall_deaths <- length(which(raw$Outcome == 'ReferredOut'))
+cat('Overall Referred Out Percent:', 100*(overall_deaths/length(raw$Outcome)),"%")
 
+
+onlyNArows_idx <- raw %>% 
+                  select(c("Airway","Breathing","Circulation","Disability")) %>%
+                  is.na() %>%
+                  apply(MARGIN = 1, function(x) any(x %in% TRUE))
+
+
+treat_na = raw[onlyNArows_idx,]
+a <- treat_na %>%
+        group_by(hospital.name, Outcome) %>%
+        summarise(total = length(Outcome))
+
+b <- a %>% 
+      group_by(hospital.name) %>%
+      summarise(Total = sum(total)) 
+    
+c <- subset(a , a$Outcome == 'ReferredOut')
+d = inner_join(b,c, by = 'hospital.name')
+d <- d %>% 
+      rename_at("total",~"ReferredOut") %>%  
+      select(-Outcome) %>% 
+      mutate(Rate =100*(ReferredOut/Total)) %>%
+      arrange(desc(Rate))
+d$Rate = formattable(d$Rate, digits = 2, format = "f")
+
+TotalReferredOut = paste("Total Referred Outs without Assesment: ", sum(d$ReferredOut))
+RefferedOutRates_WOAssesment<- d %>%
+                              filter(Total > 50) %>%  #removing hospital.names with 50 or fewwer 
+                              ggplot(aes(x = reorder(hospital.name,-Rate), y= Rate)) +
+                              geom_bar(stat= "identity", fill = "steel blue") +
+                              theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+                              geom_text(aes(label=Rate), position=position_dodge(width=0.9), vjust=-0.25, size = 3) +
+                              labs(x = "Hospitals",
+                                   y = "% Referred Out Rate",
+                                   title = "ROut Rate without Assesment - Hospitals",
+                                   subtitle = paste0(TotalReferredOut)) + 
+                              theme(panel.border = element_blank(),
+                                    panel.grid.major = element_blank(),
+                                    panel.grid.minor = element_blank(),
+                                    plot.subtitle = element_text(hjust = 1, face = "bold.italic"),
+                                    axis.line = element_line(size = 0.5, linetype = "solid",colour = "black"))
+
+RefferedOutRates_WOAssesment
+ggsave("Plots/ROut without Assesment.jpg", dpi = 300)
+write.csv(d, "/Users/ks/Desktop/DDP/PREM/Analysis/ReferredOut/WOAssesment_hospitals.csv", row.names = FALSE)
+
+```
+
+Referred Out without both Assesment and treatment - District
+```{r}
+overall_deaths <- length(which(raw$Outcome == 'ReferredOut'))
+cat('Overall Referred Out Percent:', 100*(overall_deaths/length(raw$Outcome)),"%")
+
+
+onlyNArowsABCD_idx <- raw %>% 
+                  select(c("Airway","Breathing","Circulation","Disability")) %>%
+                  is.na() %>%
+                  apply(MARGIN = 1, function(x) any(x %in% TRUE))
+
+onlyNArows_idx <- raw[onlyNArowsABCD_idx,] %>%
+                  select(c("Head.Tilt.Chin.Lift" ,"Bag.valve.Mask.Ventilation","CPAP", "Intubation", "Bronchodialators", "Cardiac.Massage", "Normal.Saline.Bolus", "Inotrope", "X25..Dextrose","CSstabilization", "Anti.Fit.Medication")) %>%
+                  is.na() %>%
+                  apply(MARGIN = 1, FUN = all)
+
+
+treat_na = raw[onlyNArows_idx,]
+a <- treat_na %>%
+        group_by(District, Outcome) %>%
+        summarise(total = length(Outcome))
+
+b <- a %>% 
+      group_by(District) %>%
+      summarise(Total = sum(total)) 
+    
+c <- subset(a , a$Outcome == 'ReferredOut')
+d = inner_join(b,c, by = 'District')
+d <- d %>% 
+      rename_at("total",~"ReferredOut") %>%  
+      select(-Outcome) %>% 
+      mutate(Rate =100*(ReferredOut/Total)) %>%
+      arrange(desc(Rate))
+d$Rate = formattable(d$Rate, digits = 2, format = "f")
+
+TotalReferredOut = paste("Total Referred Outs without Assesment and Treatment: ", sum(d$ReferredOut))
+RefferedOutRates_WOAssesmentandTRT<- d %>%
+                              filter(Total > 50) %>%  #removing districts with 50 or fewwer 
+                              ggplot(aes(x = reorder(District,-Rate), y= Rate)) +
+                              geom_bar(stat= "identity", fill = "steel blue") +
+                              theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+                              geom_text(aes(label=Rate), position=position_dodge(width=0.9), vjust=-0.25, size = 3) +
+                              labs(x = "Districts",
+                                   y = "% Referred Out Rate",
+                                   title = "ROut Rate without Assesment and Treatment",
+                                   subtitle = paste0(TotalReferredOut)) + 
+                              theme(panel.border = element_blank(),
+                                    panel.grid.major = element_blank(),
+                                    panel.grid.minor = element_blank(),
+                                    plot.subtitle = element_text(hjust = 1, face = "bold.italic"),
+                                    axis.line = element_line(size = 0.5, linetype = "solid",colour = "black"))
+
+RefferedOutRates_WOAssesmentandTRT
+ggsave("Plots/ROut without Assesment and Treatment.jpg", dpi = 300)
+write.csv(d, "/Users/ks/Desktop/DDP/PREM/Analysis/ReferredOut/WOAssesmentandTreatment_District.csv", row.names = FALSE)
+
+
+```
+
+Referred Out without both Assesment and treatment - Hospital
+```{r}
+overall_deaths <- length(which(raw$Outcome == 'ReferredOut'))
+cat('Overall Referred Out Percent:', 100*(overall_deaths/length(raw$Outcome)),"%")
+
+
+onlyNArowsABCD_idx <- raw %>% 
+                  select(c("Airway","Breathing","Circulation","Disability")) %>%
+                  is.na() %>%
+                  apply(MARGIN = 1, function(x) any(x %in% TRUE))
+
+onlyNArows_idx <- raw[onlyNArowsABCD_idx,] %>%
+                  select(c("Head.Tilt.Chin.Lift" ,"Bag.valve.Mask.Ventilation","CPAP", "Intubation", "Bronchodialators", "Cardiac.Massage", "Normal.Saline.Bolus", "Inotrope", "X25..Dextrose","CSstabilization", "Anti.Fit.Medication")) %>%
+                  is.na() %>%
+                  apply(MARGIN = 1, FUN = all)
+
+
+treat_na = raw[onlyNArows_idx,]
+a <- treat_na %>%
+        group_by(hospital.name, Outcome) %>%
+        summarise(total = length(Outcome))
+
+b <- a %>% 
+      group_by(hospital.name) %>%
+      summarise(Total = sum(total)) 
+    
+c <- subset(a , a$Outcome == 'ReferredOut')
+d = inner_join(b,c, by = 'hospital.name')
+d <- d %>% 
+      rename_at("total",~"ReferredOut") %>%  
+      select(-Outcome) %>% 
+      mutate(Rate =100*(ReferredOut/Total)) %>%
+      arrange(desc(Rate))
+d$Rate = formattable(d$Rate, digits = 2, format = "f")
+
+TotalReferredOut = paste("Total Referred Outs without Assesment and Treatment: ", sum(d$ReferredOut))
+RefferedOutRates_WOAssesmentandTRT<- d %>%
+                              filter(Total > 50) %>%  #removing hospital.names with 50 or fewwer 
+                              ggplot(aes(x = reorder(hospital.name,-Rate), y= Rate)) +
+                              geom_bar(stat= "identity", fill = "steel blue") +
+                              theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+                              geom_text(aes(label=Rate), position=position_dodge(width=0.9), vjust=-0.25, size = 3) +
+                              labs(x = "Hospitals",
+                                   y = "% Referred Out Rate",
+                                   title = "ROut Rate without Assesment and Treatment - Hospital",
+                                   subtitle = paste0(TotalReferredOut)) + 
+                              theme(panel.border = element_blank(),
+                                    panel.grid.major = element_blank(),
+                                    panel.grid.minor = element_blank(),
+                                    plot.subtitle = element_text(hjust = 1, face = "bold.italic"),
+                                    axis.line = element_line(size = 0.5, linetype = "solid",colour = "black"))
+
+RefferedOutRates_WOAssesmentandTRT
+ggsave("Plots/ROut without Assesment and Treatment.jpg", dpi = 300)
+write.csv(d, "/Users/ks/Desktop/DDP/PREM/Analysis/ReferredOut/WOAssesmentandTreatment_hospital.name.csv", row.names = FALSE)
+
+
+```
 
 Preprocessing into binarised data
 ```{r}
@@ -400,6 +679,7 @@ redundant_cols <- c("Version","District","hospital.name","Year","Month","Date","
 binarised_data <- disease_preproc(data, redundant_cols)
 
 ```
+
 
 Etiology Combinations
 ```{r}
@@ -442,6 +722,11 @@ etiology_combinations_bar <- combination_etiology %>% top_n(20, Frequency) %>%
 etiology_combinations_bar
 ```
 
+Monthwise Etiology
+```{r}
+
+```
+
 ABCD Combinations
 ```{r}
 ABCD_combinations <- data %>% 
@@ -451,6 +736,7 @@ ABCD_combinations <- ABCD_combinations %>%
                         arrange(desc(n))
 print(ABCD_combinations)
 ```
+
 
 ```{r}
 
