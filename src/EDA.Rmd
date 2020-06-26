@@ -17,6 +17,7 @@ library(formattable)
 library(cluster)
 library(factoextra)
 library(qdapTools)
+library(reshape2)
 ```
 
 Load Data
@@ -130,22 +131,13 @@ TotalPatients <- paste("Total Patients:", length(data$Outcome))
 Monthwise_Count_bar <- data %>% 
               filter(!is.na(Month)) %>%
               ggplot(aes(x = Month, y = ..count..)) + 
-              geom_bar(fill = 'steel blue') +
+              geom_bar(fill = 'steel blue',width=0.6, position = position_dodge(width=0.2)) +
               labs(x = "Months",
                    y = "Count",
                    title = "Monthwise Patients Count",
                    subtitle = paste0(TotalPatients)) +
               scale_y_continuous(limits = c(0,2500)) +
-             theme(plot.subtitle = element_text(hjust = 1, face = "bold.italic"),legend.position = c(0.95,0.8),   # position inside the plot
-        legend.background = element_blank(),  # remove white background blocking grid 
-        legend.key.size = unit(0.2, "cm"),  # reduce the size of legend elements
-        plot.margin = unit(c(9, 5.5, 2, 20), "points"),  # add top margin, and reduce bottom, makes co plot better
-        panel.background = element_rect(fill = "white",
-                                colour = "white",
-                                size = 0.5, linetype = "solid"),  # better grids
-        panel.grid.major = element_line(size = 0.5, linetype = 'solid',
-                                colour = "grey"),
-        axis.title.y = element_blank())
+             theme(plot.subtitle = element_text(hjust = 1, face = "bold.italic"))
  Monthwise_Count_bar
  ggsave("Plots/Monthwise_Count_bar.jpg", dpi = 300)
  
@@ -709,8 +701,10 @@ theme_update(plot.title = element_text(hjust = 0.5, face = "bold"))
 
 etiology_combinations_bar <- combination_etiology %>% top_n(20, Frequency) %>%
                                     ggplot(aes(x = reorder(Etiology.Combinations,-Frequency) ,y=Frequency)) + 
-                                    geom_bar(stat = "identity", fill = 'steel blue') + 
-                                    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+                                    
+                                    geom_bar(stat = "identity", fill = 'steel blue') +
+  
+                                    theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
                               labs(x = "Etiology",
                                    y = "Count",
                                    title = "Etiology Combinations") + 
@@ -718,13 +712,82 @@ etiology_combinations_bar <- combination_etiology %>% top_n(20, Frequency) %>%
                                     panel.grid.major = element_blank(),
                                     panel.grid.minor = element_blank(),
                                     plot.subtitle = element_text(hjust = 1, face = "bold.italic"),
-                                    axis.line = element_line(size = 0.5, linetype = "solid", colour = "black"))
+                                    axis.line = element_line(size = 0.5, linetype = "solid", colour = "black")) 
 etiology_combinations_bar
 ```
 
 Monthwise Etiology
 ```{r}
+monthwise_etiology <- binarised_data %>%
+                      select(c(colnames(etiology))) %>%
+                      cbind(data$Month) %>%
+                      rename(Month = `data$Month`) %>%
+                      group_by(Month) %>%
+                      summarise_all(funs(sum))
 
+meMelt <- melt(monthwise_etiology) %>% 
+          arrange(desc(value)) %>%
+          group_by(Month) %>%
+          slice(1:4)
+
+monthwise_etiology_plot <- meMelt %>% 
+                           ggplot(aes(x = variable,y = value)) + 
+                  geom_bar(aes(fill = variable),stat = "identity",position = "dodge") +                   facet_wrap(~Month, ncol = 6) +
+                  theme(axis.text.x = element_blank()) + 
+                              labs(x = "Etiology",
+                                   y = "Count",
+                                   title = "Top etiologies - Monthwise") + 
+                              theme(panel.border = element_blank(),
+                                    panel.grid.major = element_blank(),
+                                    panel.grid.minor = element_blank(),
+                                    legend.position = "bottom",
+                                    plot.subtitle = element_text(hjust = 1, face = "bold.italic"),
+                                    axis.line = element_line(size = 0.5, linetype = "solid", colour = "black")) 
+monthwise_etiology_plot
+```
+
+Fever over the months
+```{r}
+monthwise_Fever <- binarised_data %>%
+                   cbind(data$Month, data$District) %>%
+                   rename(Month = `data$Month`) %>%
+                   group_by(Month) %>%
+                   summarise(Fever = sum(Fever))
+
+monthwise_Fever_plot <- monthwise_Fever %>%
+                        ggplot(aes(x = Month, y= Fever)) + 
+                        geom_bar(stat = "identity", fill = 'steel blue',width=0.6, position = position_dodge(width=0.2)) + 
+                        labs(title = "Fever Monthwise")
+                        
+
+monthwise_Fever_plot
+```
+
+```{r}
+combined_patients_Fever <- plot_grid(monthwise_Fever_plot, Monthwise_Count_bar, align = "v", nrow = 2, rel_heights = c(1/2,2/3))
+combined_patients_Fever
+```
+
+Breathlessness over the months
+```{r}
+monthwise_Breathlessness <- binarised_data %>%
+                   cbind(data$Month, data$District) %>%
+                   rename(Month = `data$Month`) %>%
+                   group_by(Month) %>%
+                   summarise(Breathlessness = sum(Breathlessness))
+
+monthwise_Breathlessness_plot <- monthwise_Breathlessness %>%
+                        ggplot(aes(x = Month, y= Breathlessness)) + 
+                        geom_bar(stat = "identity", fill = 'steel blue',width=0.6, position = position_dodge(width=0.2)) + 
+                        labs(title = "Breathlessness Combinations")
+                        
+
+monthwise_Breathlessness_plot
+```
+
+```{r}
+combined_patients_breathlessness <- plot_grid(monthwise_Breathlessness_plot, Monthwise_Count_bar, align = "v", nrow = 2, rel_heights = c(1/2,2/3))
+a
 ```
 
 ABCD Combinations
