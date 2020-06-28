@@ -177,7 +177,7 @@ DistrictwisePatientCount_bar
 ggsave("Plots/DistrictwisePatientCount_bar.tiff", dpi = 300)
 ```
 
-District wise distribution of patients
+Hospital wise distribution of patients
 ```{r}
 districts <- length(unique(data$District))
 hospitals <- length(unique(data$hospital.name))
