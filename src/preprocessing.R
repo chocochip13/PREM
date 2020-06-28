@@ -1,3 +1,6 @@
+capFirst <- function(s) {
+  paste(toupper(substring(s, 1, 1)), substring(s, 2), sep = "")
+}
 basic_preproc <- function(df, red_cols) 
 { 
   # Removing duplicates
@@ -295,6 +298,8 @@ basic_preproc <- function(df, red_cols)
     mutate(Anti.Snake.Venom = replace(Anti.Snake.Venom, Anti.Snake.Venom == "TRUE", "1")) %>%
     mutate(Anti.Snake.Venom = as.factor(Anti.Snake.Venom))
   
+  df <- df %>% 
+         mutate(District = capFirst(District))
 }
 
 disease_preproc <- function(df, red_cols){

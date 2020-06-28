@@ -11,6 +11,7 @@ library(dplyr)
 library(tidyverse)
 library(cowplot)
 library(ggplot2)
+library(ggrepel)
 library(grid)
 library(gridExtra)
 library(scales)
@@ -221,8 +222,9 @@ ggsave("Plots/EtiologyCombinations_bar.jpg",dpi = 300)
 ```
 
 Monthwise entries in Districts
+
 ```{r}
-monthwise_districts <- data %>% 
+ monthwise_districts <- data %>% 
                        select(c(Month, District)) %>%
                        filter(!is.na(District)) %>%
                        filter(!is.na(Month)) 
@@ -234,14 +236,27 @@ monthwise_districts <- cbind(monthwise_districts, mtabulate(monthwise_districts$
                        mutate(Month = as.integer(Month)) %>%
                        mutate(value = as.numeric(value))
   
-ggplot(data=monthwise_districts,
-       aes(x=Month, y=value, colour=variable)) +
-       geom_point()+
+monthwise_districts %>% 
+  mutate(label = if_else(Month == max(Month), as.character(variable), NA_character_)) %>%
+ggplot(aes(x=Month, y=value, colour=variable, group = variable)) +
        geom_line() + 
        ylab('')+
-       scale_x_continuous(breaks=c(1:12))
+       scale_colour_discrete(guide = 'none') +
+       scale_x_continuous(breaks=c(1:12)) +
+       theme_bw()+
+       geom_label_repel(aes(label = label),
+                  nudge_x = 1,
+                  na.rm = TRUE,xlim = c(1,NA),size = 2) +
+                 theme(
+                                 panel.border = element_blank(),
+                                    panel.grid.major = element_blank(),
+                                    panel.grid.minor = element_blank(),
+                                    legend.position = "bottom",
+                                    plot.subtitle = element_text(hjust = 1, face = "bold.italic"),
+                                    axis.line = element_line(size = 0.5, linetype = "solid", colour = "black")) 
+ggsave("a.jpg")
+write.csv(monthwise_districts, "Monthwise_District.csv")
 
-ggsave("Plots/DistrictandMonth.tiff", dpi = 300)
 ```
 
 Death Rates in districts
