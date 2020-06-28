@@ -37,6 +37,7 @@ ABstreatment <- c("Head.Tilt.Chin.Lift","Bag.valve.Mask.Ventilation","CPAP","Int
 AB.treatment <- ABCD.treatment %>%
                 select(c(colnames(airway), colnames(breathing), all_of(ABstreatment)))
 #Write AB and its treatment
+
 write.csv(AB.treatment, "/Users/ks/Desktop/DDP/PREM/DATA_27APRIL2020/ABCDpps/AB.treatment.csv",row.names = FALSE)
 ```
 

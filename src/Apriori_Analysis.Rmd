@@ -31,7 +31,16 @@ ABCDtreatment <- binarised_data %>%
           select(c("Airway","Breathing","Circulation","Disability","Head.Tilt.Chin.Lift" ,"Bag.valve.Mask.Ventilation","CPAP", "Intubation", colnames(bronchodialators), "Cardiac.Massage", "Normal.Saline.Bolus", colnames(inotrope), "X25..Dextrose", colnames(anti.Fit.Medication)))
 
 comorbidities <- binarised_data %>%
-                        select(c(colnames(cardiac), colnames(CNS), colnames(RS),"Renal.Disease" ,"Liver.Disease", "Blood" , "Metabolic",  "Post.Surgical" , "Bottle.Fed" , "Poor.child.rearing.practices" , "PLHA")) %>% mutate_all(funs(as.integer(.))) %>% mutate_all(funs(as.logical(.)))
+                        select(c(colnames(cardiac), colnames(CNS), colnames(RS),"Renal.Disease" ,"Liver.Disease", "Blood" , "Metabolic",  "Post.Surgical" , "Bottle.Fed" , "Poor.child.rearing.practices" , "PLHA")) %>% mutate_all(funs(as.numeric(.)))
+comorbidities$Renal.Disease = comorbidities$Renal.Disease-1
+comorbidities$Liver.Disease = comorbidities$Liver.Disease-1
+comorbidities$Blood = comorbidities$Blood-1
+comorbidities$Post.Surgical = comorbidities$Post.Surgical-1
+comorbidities$Metabolic = comorbidities$Metabolic-1
+comorbidities$Bottle.Fed = comorbidities$Bottle.Fed-1
+comorbidities$Poor.child.rearing.practices = comorbidities$Poor.child.rearing.practices-1
+comorbidities$PLHA = comorbidities$PLHA -1
+comorbidities <- comorbidities %>% mutate_all(funs(as.logical(.)))
 
 ABCD <- binarised_data %>% select(c("Airway", "Breathing", "Circulation", "Disability"))
 ```
@@ -39,18 +48,27 @@ ABCD <- binarised_data %>% select(c("Airway", "Breathing", "Circulation", "Disab
 
 Frequency plot-Etiology
 ```{r}
+
 etiology <- as(etiology, "transactions")
-itemFrequencyPlot(etiology,topN=20,type="absolute",col=brewer.pal(8,'Pastel2'), main="Absolute Item Frequency Plot")
+a = itemFrequencyPlot(etiology,topN=20,type="absolute",col=brewer.pal(8,'Pastel2'), main="Etiology frequency", xlab = "Etiology", ylab = "")
+
+
+
 ```
 
 ```{r}
+
 rule1_etiology <- apriori(etiology, parameter = list(support = 0.001, confidence = 0.1,minlen = 1, maxlen = 3))
-inspect(head(sort(rule1_etiology, by='lift')))
+a = inspect(head(sort(rule1_etiology, by='lift'),6))
+is.dbl <- sapply(a, is.double)
+a[is.dbl] <- lapply(a[is.dbl], round, 4)
+write.csv(a, "/Users/ks/Desktop/DDP/PREM/Analysis/AprioriEtiology.csv")
 ```
 
 
 ```{r}
 plot(rule1_etiology)
+
 ```
 
 ```{r}
@@ -63,17 +81,20 @@ plotly_arules(rule1_etiology)
 ```
 
 ```{r}
-comorbidities <- as(comorbidities, "transactions")
-itemFrequencyPlot(comorbidities,topN=20,type="absolute",col=brewer.pal(8,'Pastel2'), main="Absolute Item Frequency Plot")
+como <- as(comorbidities, "transactions")
+itemFrequencyPlot(como,topN=20,type="absolute",col=brewer.pal(8,'Pastel2'), main="Comorbidities Frequency", xlab = "Comorbidities", ylab = "")
 ```
 
 ```{r}
-rule1_como <- apriori(comorbidities, parameter = list(support = 0.001, confidence = 0.05, maxlen = ncol(comorbidities) ))
+rule1_como <- apriori(como, parameter = list(support = 0.001, confidence = 0.01, maxlen = ncol(como)))
 ```
 
 
 ```{r}
-inspect(head(sort(rule1_como, by = "lift"), 10))
+a = inspect(head(sort(rule1_como, by = "lift"), 6))
+is.dbl <- sapply(a, is.double)
+a[is.dbl] <- lapply(a[is.dbl], round, 4)
+write.csv(a, "/Users/ks/Desktop/DDP/PREM/Analysis/AprioriComorbidities.csv")
 ```
 
 ```{r}
@@ -89,5 +110,18 @@ plotly_arules(rule1_como)
 
 ```
 
+```{r}
+outComo <- binarised_data %>%
+           select(c(colnames(comorbidities), "Outcome"))
+outComo <- cbind(outComo, mtabulate(outComo$Outcome)) %>%
+           select(-c("Outcome"))
+oC <- as(outComo, "transactions")
+rule1_oC <- apriori(oC, parameter = list(support = 0.01, confidence = 0.1), appearance = list(default="lhs",rhs="Admitted"), control = list (verbose=F))
 
+inspect(head(sort(rule1_oC, by='lift'),10))
+#is.dbl <- sapply(a, is.double)
+#a[is.dbl] <- lapply(a[is.dbl], round, 4)
+#write.csv(a, "/Users/ks/Desktop/DDP/PREM/Analysis/AprioriEtiology.csv")
+
+```
 

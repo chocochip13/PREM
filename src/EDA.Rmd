@@ -6,6 +6,7 @@ output: html_notebook
 Loading Libraries
 
 ```{r}
+library(plyr)
 library(dplyr)
 library(tidyverse)
 library(cowplot)
@@ -18,6 +19,7 @@ library(cluster)
 library(factoextra)
 library(qdapTools)
 library(reshape2)
+
 ```
 
 Load Data
@@ -89,17 +91,22 @@ age_box
 
 Age Distribution Density - Density plot
 ```{r}
+means <- ddply(data, "Gender", summarise, Age.mean = mean(Age..in.Months., na.rm = T))
 age_density <- data %>% 
                 filter(!is.na(Gender)) %>%
                 filter(!is.na(Age..in.Months.)) %>%
                 ggplot(aes(Age..in.Months. , fill = Gender)) + 
-                geom_density() +
+                geom_density()  +
+                geom_vline(data = means, aes(xintercept = Age.mean, colour = Gender),
+             linetype = "longdash", size=1) +
+                scale_colour_discrete(na.translate = F) +
+                
                 ggtitle("Age Distribution") +
-                xlab("") +
+                xlab("Age in Months") +
                 ylab("Density") +
                  theme(legend.position = c(0.95,0.8),   # position inside the plot
         legend.background = element_blank(),  # remove white background blocking grid 
-        legend.key.size = unit(0.8, "cm"),  # reduce the size of legend elements
+        legend.key.size = unit(0.5, "cm"),  # reduce the size of legend elements
         plot.margin = unit(c(9, 5.5, 2, 20), "points"),  # add top margin, and reduce bottom, makes co plot better
         panel.background = element_rect(fill = "white",
                                 colour = "white",
@@ -115,7 +122,7 @@ age_density
 Combined Plot
 ```{r}
 combined_AgeDistribution <- plot_grid(age_density, age_box, align = "v", nrow = 2, rel_heights = c(3/4,1/4))
-ggsave("Plots/combined_AgeDistribution.jpg", dpi = 300)
+ggsave("Plots/combined_AgeDistribution.tiff", dpi = 300)
 ```
 ```{r}
 combined_AgeDistribution
@@ -139,7 +146,7 @@ Monthwise_Count_bar <- data %>%
               scale_y_continuous(limits = c(0,2500)) +
              theme(plot.subtitle = element_text(hjust = 1, face = "bold.italic"))
  Monthwise_Count_bar
- ggsave("Plots/Monthwise_Count_bar.jpg", dpi = 300)
+ ggsave("Plots/Monthwise_Count_bar.tiff", dpi = 300)
  
 ```
 
@@ -164,16 +171,37 @@ DistrictwisePatientCount_bar <- data %>%
         legend.background = element_blank(),  # remove white background blocking grid 
         legend.key.size = unit(0.2, "cm"),  # reduce the size of legend elements
         plot.margin = unit(c(9, 5.5, 2, 20), "points"),  # add top margin, and reduce bottom, makes co plot better
-        panel.background = element_rect(fill = "white",
-                                colour = "white",
-                                size = 0.5, linetype = "solid"),  # better grids
-        panel.grid.major = element_line(size = 0.5, linetype = 'solid',
-                                colour = "grey"),
-        axis.title.y = element_blank()
-                        ) 
+        axis.title.y = element_blank()) 
                   
 DistrictwisePatientCount_bar
-ggsave("Plots/DistrictwisePatientCount_bar.jpg", dpi = 300)
+ggsave("Plots/DistrictwisePatientCount_bar.tiff", dpi = 300)
+```
+
+District wise distribution of patients
+```{r}
+districts <- length(unique(data$District))
+hospitals <- length(unique(data$hospital.name))
+cat('Number of Districts: ', districts)
+cat('\nNumber of Hospitals: ', hospitals)
+TotalPatients <- paste("Total Patients:", length(data$Outcome))
+hospital.namewisePatientCount_bar <- data %>%
+                  filter(!is.na(hospital.name)) %>%
+                  ggplot(aes(x = fct_infreq(hospital.name), y = ..count..)) +
+                  geom_bar(fill = 'steel blue') +
+                  labs(x = "Hospital names",
+                       y = "Count",
+                       title = "Hospital wise Patient Count",
+                       subtitle = paste0(TotalPatients)) +
+                  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+                        plot.subtitle = element_text(hjust = 1, face = "bold.italic"),
+                        legend.position = c(0.95,0.8),   # position inside the plot
+        legend.background = element_blank(),  # remove white background blocking grid 
+        legend.key.size = unit(0.2, "cm"),  # reduce the size of legend elements
+        plot.margin = unit(c(9, 5.5, 2, 20), "points"),  # add top margin, and reduce bottom, makes co plot better
+        axis.title.y = element_blank()) 
+                  
+hospital.namewisePatientCount_bar
+ggsave("Plots/hospital.namewisePatientCount_bar.tiff", dpi = 300)
 ```
 
 Etiology occurences
@@ -190,6 +218,30 @@ EtiologyCombinations_bar <- data %>%
 
 EtiologyCombinations_bar
 ggsave("Plots/EtiologyCombinations_bar.jpg",dpi = 300)
+```
+
+Monthwise entries in Districts
+```{r}
+monthwise_districts <- data %>% 
+                       select(c(Month, District)) %>%
+                       filter(!is.na(District)) %>%
+                       filter(!is.na(Month)) 
+monthwise_districts <- cbind(monthwise_districts, mtabulate(monthwise_districts$District)) %>%
+                       select(-c(District)) %>%
+                       group_by(Month) %>%
+                       summarise_all(funs(sum)) %>%
+                       melt(id = "Month") %>%
+                       mutate(Month = as.integer(Month)) %>%
+                       mutate(value = as.numeric(value))
+  
+ggplot(data=monthwise_districts,
+       aes(x=Month, y=value, colour=variable)) +
+       geom_point()+
+       geom_line() + 
+       ylab('')+
+       scale_x_continuous(breaks=c(1:12))
+
+ggsave("Plots/DistrictandMonth.tiff", dpi = 300)
 ```
 
 Death Rates in districts
@@ -215,14 +267,14 @@ d <- d %>%
 d$Rate = formattable(d$Rate, digits = 2, format = "f")
 TotalDeaths <- paste("Total Deaths: ", sum(d$Died))
 DeathRates_districtwise <- d %>%
-                              filter(Total > 50) %>%  #removing districts with 10 or fewwer 
+                              filter(Total > 50) %>%  #removing districts with 50 or fewwer 
                               ggplot(aes(x = reorder(District,-Rate), y= Rate)) +
                               geom_bar(stat= "identity", fill = "steel blue") +
                               theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
                               geom_text(aes(label=Rate), position=position_dodge(width=0.9), vjust=-0.25) +
                               labs(x = "Districts",
                                    y = '% Death Rate',
-                                   title = "Death Rate - Districtwise",
+                                   title = "Death Rate",
                                    subtitle = paste0(TotalDeaths)) + 
                               theme(panel.border = element_blank(),
                                     panel.grid.major = element_blank(),
@@ -230,7 +282,7 @@ DeathRates_districtwise <- d %>%
                                     axis.line = element_line(size = 0.5, linetype = "solid",colour = "black"),
                                     plot.subtitle = element_text(hjust = 1, face = "bold.italic"))
 DeathRates_districtwise
-ggsave("Plots/DeathRates_districtwise.jpg", dpi = 300)
+ggsave("Plots/DeathRates_districtwise.tiff", dpi = 300)
 
 
 ```
@@ -274,7 +326,7 @@ RefferedOutRates_districtwise <- d %>%
                                     plot.subtitle = element_text(hjust = 1, face = "bold.italic"),
                                     axis.line = element_line(size = 0.5, linetype = "solid",colour = "black"))
 RefferedOutRates_districtwise
-ggsave("Plots/RefferedOutRates_districtwise.jpg", dpi = 300)
+ggsave("Plots/RefferedOutRates_districtwise.tiff", dpi = 300)
 
 
 ```
@@ -319,7 +371,7 @@ RefferedOutRates_hospital.namewise <- d %>%
                                     plot.subtitle = element_text(hjust = 1, face = "bold.italic"),
                                     axis.line = element_line(size = 0.5, linetype = "solid",colour = "black"))
 RefferedOutRates_hospital.namewise
-ggsave("Plots/RefferedOutRates_hospital.namewise.jpg", dpi = 300)
+ggsave("Plots/RefferedOutRates_hospital.namewise.tiff", dpi = 300)
 
 
 
@@ -582,7 +634,7 @@ d <- d %>%
       arrange(desc(Rate))
 d$Rate = formattable(d$Rate, digits = 2, format = "f")
 
-TotalReferredOut = paste("Total Referred Outs without Assesment and Treatment: ", sum(d$ReferredOut))
+TotalReferredOut = paste("Total(on raw data): ", sum(d$ReferredOut))
 RefferedOutRates_WOAssesmentandTRT<- d %>%
                               filter(Total > 50) %>%  #removing districts with 50 or fewwer 
                               ggplot(aes(x = reorder(District,-Rate), y= Rate)) +
@@ -593,14 +645,15 @@ RefferedOutRates_WOAssesmentandTRT<- d %>%
                                    y = "% Referred Out Rate",
                                    title = "ROut Rate without Assesment and Treatment",
                                    subtitle = paste0(TotalReferredOut)) + 
-                              theme(panel.border = element_blank(),
+                              theme(axis.text.x = element_text(size = 10),
+                                    panel.border = element_blank(),
                                     panel.grid.major = element_blank(),
                                     panel.grid.minor = element_blank(),
                                     plot.subtitle = element_text(hjust = 1, face = "bold.italic"),
                                     axis.line = element_line(size = 0.5, linetype = "solid",colour = "black"))
 
 RefferedOutRates_WOAssesmentandTRT
-ggsave("Plots/ROut without Assesment and Treatment.jpg", dpi = 300)
+ggsave("Plots/ROut without Assesment and Treatment.tiff", dpi = 300)
 write.csv(d, "/Users/ks/Desktop/DDP/PREM/Analysis/ReferredOut/WOAssesmentandTreatment_District.csv", row.names = FALSE)
 
 
@@ -737,12 +790,14 @@ monthwise_etiology_plot <- meMelt %>%
                               labs(x = "Etiology",
                                    y = "Count",
                                    title = "Top etiologies - Monthwise") + 
-                              theme(panel.border = element_blank(),
+                              theme(aspect.ratio = 1,
+                                    panel.border = element_blank(),
                                     panel.grid.major = element_blank(),
                                     panel.grid.minor = element_blank(),
                                     legend.position = "bottom",
                                     plot.subtitle = element_text(hjust = 1, face = "bold.italic"),
                                     axis.line = element_line(size = 0.5, linetype = "solid", colour = "black")) 
+ggsave("Plots/topEtiologies_Monthwise.tiff", dpi = 300)
 monthwise_etiology_plot
 ```
 
@@ -766,6 +821,8 @@ monthwise_Fever_plot
 ```{r}
 combined_patients_Fever <- plot_grid(monthwise_Fever_plot, Monthwise_Count_bar, align = "v", nrow = 2, rel_heights = c(1/2,2/3))
 combined_patients_Fever
+ggsave("Plots/combined_monthwise_feverandOverall.tiff", dpi = 300)
+
 ```
 
 Breathlessness over the months
@@ -787,7 +844,8 @@ monthwise_Breathlessness_plot
 
 ```{r}
 combined_patients_breathlessness <- plot_grid(monthwise_Breathlessness_plot, Monthwise_Count_bar, align = "v", nrow = 2, rel_heights = c(1/2,2/3))
-a
+combined_patients_breathlessness
+
 ```
 
 ABCD Combinations
@@ -797,7 +855,8 @@ ABCD_combinations <- data %>%
 cat("Number of unique combinations: ", nrow(ABCD_combinations))
 ABCD_combinations <- ABCD_combinations %>%
                         arrange(desc(n))
-print(ABCD_combinations)
+a = head(ABCD_combinations,10)
+write.csv(a, "/Users/ks/Desktop/DDP/PREM/Analysis/ABCD_combinations.csv")
 ```
 
 
